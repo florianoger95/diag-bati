@@ -17,6 +17,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,12 +28,14 @@ jobs:
       - run: npm test
       - name: Build GitHub Pages (base /<dépôt>/)
         run: node scripts/build-pages.mjs ${{ github.event.repository.name }}
+      - name: Installation de WebKit pour les tests E2E
+        timeout-minutes: 8
+        run: npx playwright install --with-deps webkit
       - name: Tests E2E WebKit sur le build publié (mode avion, reprise)
+        timeout-minutes: 6
         env:
           E2E_BASE: /${{ github.event.repository.name }}/
-        run: |
-          npx playwright install --with-deps webkit
-          npx playwright test
+        run: npx playwright test
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
