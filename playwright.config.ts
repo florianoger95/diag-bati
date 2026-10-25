@@ -12,7 +12,8 @@ export default defineConfig({
   fullyParallel: false,
   // sur GitHub, une seconde chance absorbe un ralentissement ponctuel de la machine
   retries: process.env['CI'] ? 1 : 0,
-  reporter: 'list',
+  // sur GitHub : chaque échec devient une annotation lisible sur la page de l'exécution
+  reporter: process.env['CI'] ? [['github'], ['list']] : 'list',
   use: {
     baseURL: url,
     trace: 'retain-on-failure',
