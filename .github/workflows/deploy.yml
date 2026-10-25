@@ -16,8 +16,11 @@ concurrency:
 
 jobs:
   build:
-    # version figée : ubuntu-latest est passé à Ubuntu 26, pas encore pris en charge par Playwright
     runs-on: ubuntu-24.04
+    # image officielle Playwright : WebKit et ses dépendances déjà installés (plus de téléchargement fragile)
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --user 1001
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -26,10 +29,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Installation de WebKit (tests navigateur et E2E)
-        timeout-minutes: 10
-        # nouvel essai si un miroir de paquets bloque
-        run: timeout 240 npx playwright install --with-deps webkit || timeout 240 npx playwright install --with-deps webkit
       - name: Tests unitaires et tests WebKit (canvas, images, PDF)
         timeout-minutes: 5
         run: npm test
