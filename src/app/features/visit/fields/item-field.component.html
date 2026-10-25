@@ -1,0 +1,132 @@
+@let it = item();
+@if (it.type === 'heading') {
+  <h3 class="heading-title">{{ it.label }}</h3>
+  @if (it.helpText) { <p class="hint">{{ it.helpText }}</p> }
+} @else {
+  <div class="head">
+    <span class="label" [id]="'label-' + it.id">
+      {{ it.label }}@if (it.required) {<span class="req" aria-label="obligatoire"> *</span>}
+    </span>
+    @if (state()?.defect; as d) {
+      <span class="badge badge-danger">Désordre · {{ urgencyLabels[d.urgency] }}</span>
+    }
+    <span class="spacer"></span>
+    @if (it.helpText) {
+      <button class="btn btn-ghost btn-small help-btn" type="button" [attr.aria-expanded]="showHelp()"
+              (click)="showHelp.set(!showHelp())" aria-label="Aide">ⓘ</button>
+    }
+  </div>
+  @if (showHelp() && it.helpText) { <p class="help">{{ it.helpText }}</p> }
+
+  <div class="control" [attr.aria-labelledby]="'label-' + it.id">
+    @switch (it.type) {
+      @case ('boolean') {
+        <div class="choices" role="group">
+          <button class="choice" type="button" [attr.aria-pressed]="value() === true" [disabled]="readonly()"
+                  (click)="toggleSingle(true)">Oui</button>
+          <button class="choice" type="button" [attr.aria-pressed]="value() === false" [disabled]="readonly()"
+                  (click)="toggleSingle(false)">Non</button>
+        </div>
+      }
+      @case ('enum') {
+        <div class="choices" role="group">
+          @for (o of it.options; track o.value) {
+            <button class="choice" type="button" [class.warn]="o.warn" [attr.aria-pressed]="value() === o.value"
+                    [disabled]="readonly()" (click)="toggleSingle(o.value)">{{ o.label }}</button>
+          }
+          @if (it.allowOther) {
+            <button class="choice" type="button" [attr.aria-pressed]="value() === OTHER" [disabled]="readonly()"
+                    (click)="toggleSingle(OTHER)">Autre…</button>
+          }
+        </div>
+        @if (value() === OTHER) {
+          <input class="input other" type="text" placeholder="Préciser" [value]="state()?.other ?? ''"
+                 [readOnly]="readonly()" (input)="setOther($any($event.target).value)" aria-label="Autre : préciser" />
+        }
+      }
+      @case ('multi') {
+        <div class="choices" role="group">
+          @for (o of it.options; track o.value) {
+            <button class="choice chip" type="button" [class.warn]="o.warn" [attr.aria-pressed]="multiValue().includes(o.value)"
+                    [disabled]="readonly()" (click)="toggleMulti(o.value)">{{ o.label }}</button>
+          }
+        </div>
+        @if (it.allowOther) {
+          <input class="input other" type="text" placeholder="Autre : préciser" [value]="state()?.other ?? ''"
+                 [readOnly]="readonly()" (input)="setOther($any($event.target).value)" aria-label="Autre : préciser" />
+        }
+      }
+      @case ('text') {
+        @if (it.multiline) {
+          <textarea class="input" rows="2" [attr.aria-labelledby]="'label-' + it.id" [appAutoGrow]="textValue()" [value]="textValue()" [readOnly]="readonly()"
+                    (input)="setText($any($event.target).value)"></textarea>
+        } @else {
+          <input class="input" type="text" [attr.aria-labelledby]="'label-' + it.id" [value]="textValue()" [readOnly]="readonly()"
+                 (input)="setText($any($event.target).value)" />
+        }
+      }
+      @case ('number') {
+        <app-number-input [value]="numberValue()" [unit]="it.unit" [label]="it.label" [readonly]="readonly()"
+                          [warn]="outOfRange()" (valueChange)="setNumber($event)" />
+        @if (outOfRange()) { <p class="range-hint">Hors norme : attendu {{ rangeText() }}.</p> }
+      }
+      @case ('date') {
+        <input class="input date" type="date" [attr.aria-labelledby]="'label-' + it.id" [value]="textValue()" [readOnly]="readonly()"
+               (change)="setDate($any($event.target).value)" />
+      }
+      @case ('datetime') {
+        <input class="input date" type="datetime-local" [attr.aria-labelledby]="'label-' + it.id" [value]="textValue()" [readOnly]="readonly()"
+               (change)="setDate($any($event.target).value)" />
+      }
+      @case ('measures') {
+        <app-measures-field [config]="it.measures!" [value]="measureRows()" [label]="it.label" [readonly]="readonly()"
+                            (valueChange)="emit({ value: $event.rows }, $event.debounce)" />
+      }
+      @case ('actions') {
+        <app-actions-field [value]="actionRows()" [label]="it.label" [snippets]="it.snippets ?? []" [readonly]="readonly()"
+                           (valueChange)="emit({ value: $event.rows }, $event.debounce)" />
+      }
+      @case ('photo') {
+        <div class="photo-placeholder">
+          <button class="btn" type="button" disabled>📷 {{ it.photoKind === 'plan' ? 'Importer un plan' : 'Prendre une photo' }}</button>
+          <span class="hint">Disponible au Lot 2.</span>
+        </div>
+      }
+    }
+  </div>
+
+  @if (showObservation()) {
+    <textarea class="input observation" rows="1" placeholder="Observations…" [appAutoGrow]="observation()"
+              [value]="observation()" [readOnly]="readonly()" [attr.aria-label]="'Observations — ' + it.label"
+              (input)="setObservation($any($event.target).value)"></textarea>
+  }
+
+  @if (!readonly() && (snippetTarget() || canDefect())) {
+    <div class="tools">
+      @if (snippetTarget()) {
+        @for (s of it.snippets; track s) {
+          <button class="choice chip snippet" type="button" (click)="insertSnippet(s)">+ {{ s }}</button>
+        }
+      }
+      <span class="spacer"></span>
+      @if (canDefect()) {
+        @if (defectOpen()) {
+          <div class="choices defect-choices" role="group" aria-label="Urgence du désordre">
+            @for (u of urgencies; track u) {
+              <button class="choice" type="button" [class.warn]="true" [attr.aria-pressed]="state()?.defect?.urgency === u"
+                      (click)="setDefect(u)">{{ urgencyLabels[u] }}</button>
+            }
+            @if (state()?.defect) {
+              <button class="btn btn-small" type="button" (click)="setDefect(null)">Retirer</button>
+            }
+            <button class="btn btn-ghost btn-small" type="button" (click)="defectOpen.set(false)">Fermer</button>
+          </div>
+        } @else {
+          <button class="btn btn-small btn-danger defect-btn" type="button" (click)="defectOpen.set(true)">
+            ⚠ {{ state()?.defect ? 'Modifier le désordre' : 'Désordre' }}
+          </button>
+        }
+      }
+    </div>
+  }
+}

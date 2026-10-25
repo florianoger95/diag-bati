@@ -1,0 +1,50 @@
+@if (instance(); as inst) {
+  <div class="page stack">
+    <header class="stack-tight">
+      <span class="section hint">{{ section()?.label }}</span>
+      <div class="row">
+        <h1>{{ section()?.repeatable ? inst.label : section()?.label }}</h1>
+        <span class="spacer"></span>
+        @if (section()?.repeatable && !store.readOnly()) {
+          <div class="row tools">
+            <button class="btn btn-small" type="button" (click)="rename()">Renommer</button>
+            <button class="btn btn-small" type="button" (click)="duplicate()">Dupliquer</button>
+            @if (siblings().length > 1) {
+              <button class="btn btn-small" type="button" (click)="move(-1)" [disabled]="siblings()[0]?.id === inst.id"
+                      aria-label="Monter dans la liste">↑</button>
+              <button class="btn btn-small" type="button" (click)="move(1)" [disabled]="siblings().at(-1)?.id === inst.id"
+                      aria-label="Descendre dans la liste">↓</button>
+            }
+            <button class="btn btn-small btn-danger" type="button" (click)="remove()">Supprimer</button>
+          </div>
+        }
+      </div>
+      @if (section()?.helpText) { <p class="hint">{{ section()?.helpText }}</p> }
+    </header>
+
+    @for (item of items(); track item.id) {
+      @if (item.fromFooter && $first === false && !items()[$index - 1].fromFooter) {
+        <h2 class="footer-title">Synthèse de la fiche</h2>
+      }
+      <app-item-field [item]="item" [state]="state(item)" [readonly]="store.readOnly()" (changed)="onChange(item, $event)" />
+    }
+
+    <nav class="pager" aria-label="Fiche précédente ou suivante">
+      @if (position().prev; as p) {
+        <a class="btn" [routerLink]="store.link('i', p.id)">← {{ p.label }}</a>
+      } @else {
+        <a class="btn" [routerLink]="store.link('conditions')">← Conditions</a>
+      }
+      <span class="spacer"></span>
+      @if (position().next; as n) {
+        <a class="btn btn-primary" [routerLink]="store.link('i', n.id)">{{ n.label }} →</a>
+      } @else {
+        <a class="btn btn-primary" [routerLink]="store.link('synthese')">Synthèse →</a>
+      }
+    </nav>
+  </div>
+} @else if (store.visit()) {
+  <div class="page stack">
+    <p>Cette fiche a été supprimée.</p>
+  </div>
+}

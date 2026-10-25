@@ -1,0 +1,80 @@
+@if (store.notFound()) {
+  <div class="page stack">
+    <p>Cette visite n'existe plus sur cet iPad.</p>
+    <a class="btn" routerLink="/">← Dossiers</a>
+  </div>
+} @else if (store.visit(); as visit) {
+  <div class="visit-bar">
+    <button class="btn btn-small drawer-btn" type="button" (click)="drawerOpen.set(!drawerOpen())"
+            [attr.aria-expanded]="drawerOpen()" aria-controls="visit-nav">☰ Fiches</button>
+    <a class="title" [routerLink]="['/dossiers', projectId()]">
+      <strong>{{ store.project()?.fields?.['projet'] || store.project()?.reference }}</strong>
+      <span class="hint">{{ visit.revision === 0 ? 'Visite initiale' : 'Mise à jour ' + visit.revision }}</span>
+    </a>
+    <span class="spacer"></span>
+    <span class="save" role="status" aria-live="polite">
+      @if (store.saveError()) {
+        <span class="badge badge-danger">Non enregistré</span>
+      } @else if (store.pendingWrites() > 0) {
+        <span class="badge">Enregistrement…</span>
+      } @else {
+        <span class="badge badge-ok">Enregistré ✓</span>
+      }
+    </span>
+  </div>
+  @if (store.readOnly()) {
+    <div class="banner banner-info readonly">
+      Visite clôturée : lecture seule.
+      <span class="spacer"></span>
+      <a class="btn btn-small" [routerLink]="store.link('synthese')">Rouvrir depuis la synthèse</a>
+    </div>
+  }
+
+  <div class="layout">
+    @if (drawerOpen()) { <div class="scrim" (click)="drawerOpen.set(false)"></div> }
+    <nav id="visit-nav" class="nav" [class.open]="drawerOpen()" aria-label="Fiches de la visite">
+      <div class="progress" aria-label="Progression">
+        <div class="bar"><span [style.width.%]="store.totalProgress().total ? (100 * store.totalProgress().answered / store.totalProgress().total) : 0"></span></div>
+        <span class="hint">{{ store.totalProgress().answered }} / {{ store.totalProgress().total }} réponses</span>
+      </div>
+      <a class="nav-link" [routerLink]="store.link('conditions')" routerLinkActive="active">Conditions de visite</a>
+      @for (nav of store.nav(); track nav.section.id) {
+        @if (nav.section.repeatable) {
+          <div class="group">
+            <span class="group-title">{{ nav.section.label }}</span>
+            @for (i of nav.instances; track i.id) {
+              <a class="nav-link sub" [routerLink]="store.link('i', i.id)" routerLinkActive="active">
+                <span>{{ i.label }}</span>
+                <span class="count" [class.done]="i.progress.total > 0 && i.progress.answered === i.progress.total">
+                  {{ i.progress.answered }}/{{ i.progress.total }}
+                </span>
+              </a>
+            }
+            @if (!store.readOnly()) {
+              <button class="btn btn-small btn-ghost add" type="button" (click)="addInstance(nav)">
+                + {{ nav.section.repeatable.noun }}
+              </button>
+            }
+          </div>
+        } @else {
+          @for (i of nav.instances; track i.id) {
+            <a class="nav-link" [routerLink]="store.link('i', i.id)" routerLinkActive="active">
+              <span>{{ nav.section.label }}</span>
+              @if (i.progress.total > 0) {
+                <span class="count" [class.done]="i.progress.answered === i.progress.total">
+                  {{ i.progress.answered }}/{{ i.progress.total }}
+                </span>
+              }
+            </a>
+          }
+        }
+      }
+      <a class="nav-link synth" [routerLink]="store.link('synthese')" routerLinkActive="active">Synthèse et clôture</a>
+    </nav>
+    <section class="content">
+      <router-outlet />
+    </section>
+  </div>
+} @else {
+  <p class="page hint">Chargement…</p>
+}

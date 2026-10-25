@@ -1,0 +1,24 @@
+:host {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 16px; border: 2px solid var(--surface-2); border-radius: 14px; background: var(--bg);
+  scroll-margin-top: 80px;
+}
+:host(.defect) { border-color: var(--danger); border-left-width: 8px; }
+:host(.heading) { border: 0; padding: 20px 4px 0; background: transparent; }
+
+.heading-title { margin: 0; color: var(--primary); text-transform: uppercase; letter-spacing: .02em; }
+.head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.label { font-weight: 700; font-size: 19px; }
+.req { color: var(--danger); }
+.spacer { flex: 1; }
+.help-btn { font-size: 22px; }
+.help { margin: 0; padding: 10px 12px; border-radius: var(--radius); background: var(--primary-soft); font-size: 16px; }
+.control { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.other { max-width: 520px; }
+.date { width: auto; }
+.range-hint { margin: 0; color: var(--warn); font-weight: 600; }
+.observation { font-size: 17px; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.snippet { font-size: 15px; min-height: 40px; padding: 4px 12px; }
+.defect-choices { align-items: center; }
+.photo-placeholder { display: flex; gap: 12px; align-items: center; }

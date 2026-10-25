@@ -1,0 +1,96 @@
+<div class="page stack">
+  <h1>Synthèse de la visite</h1>
+
+  <section class="card stack" aria-labelledby="t-desordres">
+    <h2 id="t-desordres">Désordres <span class="badge" [class.badge-danger]="defects().length">{{ defects().length }}</span></h2>
+    @if (defects().length === 0) {
+      <p class="hint">Aucun désordre relevé.</p>
+    } @else {
+      <ul class="list">
+        @for (d of defects(); track d.instanceId + d.itemId) {
+          <li>
+            <a [routerLink]="link(d)" [fragment]="fragment(d)" class="entry">
+              <span class="badge badge-danger">{{ labels[d.urgency] }}</span>
+              <span><strong>{{ d.instanceLabel }}</strong> — {{ d.itemLabel }}</span>
+              @if (d.observation) { <span class="obs">{{ d.observation }}</span> }
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="card stack" aria-labelledby="t-securite">
+    <h2 id="t-securite">Mesures de sécurité à court terme</h2>
+    @if (safety().length === 0) {
+      <p class="hint">Aucune mesure de sécurité.</p>
+    } @else {
+      <ul class="list">
+        @for (a of safety(); track trackAction(a)) {
+          <li>
+            <a [routerLink]="link(a)" [fragment]="fragment(a)" class="entry">
+              <span class="badge" [class.badge-danger]="a.urgency === 'immediate'">{{ labels[a.urgency] }}</span>
+              <span>{{ a.text }}</span>
+              <span class="hint">{{ a.instanceLabel }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="card stack" aria-labelledby="t-travaux">
+    <h2 id="t-travaux">Récapitulatif des travaux et échéances</h2>
+    @if (works().length === 0) {
+      <p class="hint">Aucune préconisation.</p>
+    }
+    @for (g of works(); track g.urgency) {
+      <h3>{{ labels[g.urgency] }}</h3>
+      <ul class="list">
+        @for (a of g.items; track trackAction(a)) {
+          <li>
+            <a [routerLink]="link(a)" [fragment]="fragment(a)" class="entry">
+              <span>{{ a.text }}</span>
+              <span class="hint">{{ a.instanceLabel }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  @if (maintenance().length) {
+    <section class="card stack" aria-labelledby="t-entretien">
+      <h2 id="t-entretien">Mesures d'entretien</h2>
+      <ul class="list">
+        @for (a of maintenance(); track trackAction(a)) {
+          <li><a [routerLink]="link(a)" [fragment]="fragment(a)" class="entry"><span>{{ a.text }}</span><span class="hint">{{ a.instanceLabel }}</span></a></li>
+        }
+      </ul>
+    </section>
+  }
+
+  <section class="card stack" aria-labelledby="t-manquants">
+    <h2 id="t-manquants">Réponses obligatoires manquantes
+      <span class="badge" [class.badge-warn]="missing().length">{{ missing().length }}</span></h2>
+    @if (missing().length === 0) {
+      <p class="hint">Tout est renseigné.</p>
+    } @else {
+      <ul class="list">
+        @for (m of missing(); track (m.instanceId ?? '') + m.itemId) {
+          <li><a [routerLink]="link(m)" [fragment]="fragment(m)" class="entry"><strong>{{ m.instanceLabel }}</strong> — {{ m.itemLabel }}</a></li>
+        }
+      </ul>
+    }
+  </section>
+
+  <div class="row closing">
+    <span class="spacer"></span>
+    @if (store.visit()?.status === 'draft') {
+      <button class="btn btn-primary" type="button" (click)="close()">Clôturer la visite</button>
+    } @else {
+      <span class="hint">Visite clôturée.</span>
+      <button class="btn" type="button" (click)="reopen()">Rouvrir la visite</button>
+    }
+  </div>
+</div>

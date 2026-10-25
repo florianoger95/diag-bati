@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "checklist-template.schema.json",
+  "title": "Modèle de fiches de diagnostic",
+  "description": "Contrat des fichiers de modèles (docs/SPEC.md §3). Vérifié au chargement par template-validator.ts.",
+  "type": "object",
+  "required": ["templateId", "version", "label", "projectFields", "visitFields", "sections"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "templateId": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "label": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "optionSets": {
+      "type": "object",
+      "additionalProperties": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/option" } }
+    },
+    "projectFields": { "type": "array", "items": { "$ref": "#/$defs/item" } },
+    "visitFields": { "type": "array", "items": { "$ref": "#/$defs/item" } },
+    "sectionFooter": { "type": "array", "items": { "$ref": "#/$defs/item" } },
+    "sections": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/section" } }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "option": {
+      "type": "object",
+      "required": ["value", "label"],
+      "properties": {
+        "value": { "type": "string" },
+        "label": { "type": "string" },
+        "warn": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "section": {
+      "type": "object",
+      "required": ["id", "label", "items"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string" },
+        "helpText": { "type": "string" },
+        "footer": { "type": "boolean" },
+        "repeatable": {
+          "type": "object",
+          "required": ["noun"],
+          "properties": {
+            "noun": { "type": "string" },
+            "suggestions": { "type": "array", "items": { "type": "string" } },
+            "min": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/item" } }
+      },
+      "additionalProperties": false
+    },
+    "item": {
+      "type": "object",
+      "required": ["id", "label", "type", "required"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string" },
+        "type": {
+          "enum": ["heading", "boolean", "enum", "multi", "text", "number", "measures", "actions", "date", "datetime", "photo"]
+        },
+        "required": { "type": "boolean" },
+        "helpText": { "type": "string" },
+        "snippets": { "type": "array", "items": { "type": "string" } },
+        "role": { "enum": ["comment", "recommendation", "safety", "maintenance"] },
+        "options": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/option" } }
+          ]
+        },
+        "allowOther": { "type": "boolean" },
+        "unit": { "type": "string" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "measures": {
+          "type": "object",
+          "required": ["columns"],
+          "properties": {
+            "points": { "type": "array", "items": { "type": "string" } },
+            "columns": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["label"],
+                "properties": { "label": { "type": "string" }, "unit": { "type": "string" } },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "history": { "type": "boolean" },
+        "photoKind": { "enum": ["photo", "plan"] },
+        "observation": { "type": "boolean" },
+        "multiline": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

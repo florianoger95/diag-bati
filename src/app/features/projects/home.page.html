@@ -1,0 +1,88 @@
+<div class="page stack">
+  <div class="row">
+    <h1>Dossiers</h1>
+    <span class="spacer"></span>
+    <a class="btn btn-primary" routerLink="/dossiers/nouveau">+ Nouveau dossier</a>
+  </div>
+
+  @if (unexported() > 0) {
+    <div class="banner banner-danger stack-tight" role="alert">
+      <div class="stack-tight">
+        <strong>
+          {{ unexported() }} dossier{{ unexported() > 1 ? 's' : '' }} non exporté{{ unexported() > 1 ? 's' : '' }} :
+          {{ unexported() > 1 ? 'ils n’existent' : 'il n’existe' }} que sur cet iPad.
+        </strong>
+        @if (showWhy()) {
+          <span class="why">
+            Safari peut effacer les données d'une app web quand l'iPad manque de place, ou si l'app
+            n'est pas ouverte pendant plusieurs semaines. Une PWA installée sur l'écran d'accueil et utilisée
+            régulièrement est protégée, mais pas de façon garantie. Exportez chaque dossier dès la visite
+            terminée (sauvegarde disponible au Lot 4).
+          </span>
+        }
+      </div>
+      <span class="spacer"></span>
+      <button class="btn btn-small btn-danger" type="button" (click)="showWhy.set(!showWhy())">
+        {{ showWhy() ? 'Masquer' : 'Pourquoi ?' }}
+      </button>
+    </div>
+  }
+
+  @for (e of catalog.errors(); track e.file) {
+    <div class="banner banner-warn" role="alert">
+      Modèle « {{ e.file }} » ignoré : {{ e.errors[0] }}{{ e.errors.length > 1 ? ' (+' + (e.errors.length - 1) + ')' : '' }}
+    </div>
+  }
+
+  <nav class="tabs" role="tablist" aria-label="Statut des dossiers">
+    @for (t of tabs; track t.id) {
+      <button class="choice" type="button" role="tab" [attr.aria-pressed]="tab() === t.id"
+              [attr.aria-selected]="tab() === t.id" (click)="tab.set(t.id)">
+        {{ t.label }} <span class="badge">{{ counts()[t.id] }}</span>
+      </button>
+    }
+  </nav>
+
+  @if (projects() === null) {
+    <p class="hint">Chargement…</p>
+  } @else if (visible().length === 0) {
+    <div class="card empty">
+      @if (tab() === 'draft') {
+        <p>Aucun dossier en cours.</p>
+        <a class="btn btn-primary" routerLink="/dossiers/nouveau">Créer un dossier</a>
+      } @else {
+        <p class="hint">Aucun dossier dans cette catégorie.</p>
+      }
+    </div>
+  } @else {
+    <ul class="list">
+      @for (s of visible(); track s.project.id) {
+        <li class="card item">
+          <a class="open" [routerLink]="['/dossiers', s.project.id, 'v', s.latestVisit.id]">
+            <span class="ref">{{ s.project.reference }}</span>
+            <strong class="name">{{ field(s, 'projet') || 'Sans nom' }}</strong>
+            <span class="hint">{{ field(s, 'adresse') }}</span>
+            <span class="meta hint">
+              @if (visitDate(s); as d) { Visite du {{ d | date: 'dd/MM/yyyy' }} · }
+              @if (s.latestVisit.revision > 0) { Mise à jour {{ s.latestVisit.revision }} · }
+              modifié le {{ s.project.updatedAt | date: 'dd/MM/yyyy à HH:mm' }}
+            </span>
+          </a>
+          <div class="actions">
+            <a class="btn btn-small" [routerLink]="['/dossiers', s.project.id]">Dossier</a>
+            <button class="btn btn-small btn-danger" type="button" (click)="remove(s)">Supprimer</button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <footer class="storage hint">
+    @if (storageText(); as text) { <span>Stockage : {{ text }}.</span> }
+    @if (storage.persisted() === true) {
+      <span class="badge badge-ok">Stockage persistant accordé</span>
+    } @else if (storage.persisted() === false) {
+      <span class="badge badge-warn">Stockage non persistant : installez l'app sur l'écran d'accueil</span>
+    }
+  </footer>
+</div>

@@ -1,0 +1,83 @@
+{
+  "$schema": "./checklist-template.schema.json",
+  "templateId": "preparation-visite",
+  "version": "1.0.0",
+  "label": "Préparation de visite et études préalables",
+  "description": "Check-list matériel, préparation du dossier et études documentaires préalables.",
+  "projectFields": [
+    { "id": "projet", "label": "Projet", "type": "text", "required": true, "observation": false },
+    { "id": "adresse", "label": "Adresse du bâtiment", "type": "text", "required": true, "observation": false },
+    { "id": "client", "label": "Client et contact", "type": "text", "required": false, "observation": false }
+  ],
+  "visitFields": [
+    { "id": "date-visite", "label": "Date prévue de la visite", "type": "date", "required": false, "observation": false }
+  ],
+  "sections": [
+    {
+      "id": "materiel",
+      "label": "Check-list matériel diagnostic",
+      "footer": false,
+      "items": [
+        { "id": "mat-tablette", "label": "Tablette chargée", "type": "boolean", "required": true, "observation": false },
+        { "id": "mat-drone", "label": "Drone chargé", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-camera-thermique", "label": "Caméra thermique", "type": "boolean", "required": true, "observation": false },
+        { "id": "mat-thermo-hygrometre", "label": "Thermomètre avec humidimètre d'ambiance", "type": "boolean", "required": true, "observation": false },
+        { "id": "mat-camera-filaire", "label": "Caméra filaire endoscopique", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-humidimetre", "label": "Humidimètre de surface", "type": "boolean", "required": true, "observation": false },
+        { "id": "mat-petit-outillage", "label": "Petit outillage", "type": "heading", "required": false },
+        { "id": "mat-tournevis", "label": "Kit tournevis avec divers embouts", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-perceuse", "label": "Petite perceuse sans fil (passage caméra filaire)", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-detecteur", "label": "Détecteur de câble électrique", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-fournitures", "label": "Fournitures", "type": "heading", "required": false },
+        { "id": "mat-porte-document", "label": "Porte-document : papier A4, calques, copie du plan cadastral", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-stylos", "label": "Stylos de couleur, crayon, gomme, règle", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-regle", "label": "Règle rigide pliable (échelle sur les photos)", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-piles", "label": "Piles de rechange", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-prelevement", "label": "Kit de prélèvement", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-temoins", "label": "Témoins de fissure", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-vetements", "label": "Vêtements et chaussures de rechange, hygiène (combinaison, gel, lingettes)", "type": "boolean", "required": false, "observation": false,
+          "helpText": "Pour éviter de ramener des spores à la maison." },
+        { "id": "mat-lampe", "label": "Lampe torche", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-couteau", "label": "Couteau", "type": "boolean", "required": false, "observation": false },
+        { "id": "mat-gros-equipement", "label": "Gros équipement", "type": "heading", "required": false },
+        { "id": "mat-echelle", "label": "Échelle pliante", "type": "boolean", "required": false, "observation": false }
+      ]
+    },
+    {
+      "id": "preparation",
+      "label": "À préparer",
+      "footer": false,
+      "items": [
+        { "id": "prep-previsite", "label": "Pré-visite : sondages destructifs à faire avant le diagnostic listés", "type": "boolean", "required": false },
+        { "id": "prep-cadastre", "label": "Plan cadastral avec les informations des études préalables", "type": "boolean", "required": false, "observation": false },
+        { "id": "prep-plans", "label": "Autres plans existants récupérés (pour annotation)", "type": "boolean", "required": false, "observation": false },
+        { "id": "prep-niveaux", "label": "Nombre de niveaux à diagnostiquer", "type": "number", "required": false, "observation": false }
+      ]
+    },
+    {
+      "id": "etudes",
+      "label": "Études documentaires préalables",
+      "footer": false,
+      "items": [
+        { "id": "etu-cadastre", "label": "Extrait cadastral (nord, échelle, n° de parcelle, surface)", "type": "text", "multiline": true, "required": false, "observation": false,
+          "helpText": "Géoportail de l'urbanisme…" },
+        { "id": "etu-cadastre-plan", "label": "Plan cadastral", "type": "photo", "photoKind": "plan", "required": false },
+        { "id": "etu-patrimoine", "label": "Valeur patrimoniale (bâti ancien)", "type": "text", "multiline": true, "required": false, "observation": false,
+          "helpText": "Cadastre napoléonien, carte de Cassini, cartes d'état-major, Gallica, Delcampe, DRAC, Mérimée, Palissy, archives départementales." },
+        { "id": "etu-sol", "label": "Nature du sol, contraintes et risques", "type": "text", "multiline": true, "required": false, "observation": false,
+          "helpText": "PPRI (inondation), PPRMT (mouvements de terrain), retrait-gonflement des argiles… (BRGM InfoTerre, Géorisques)." },
+        { "id": "etu-eau", "label": "Morphologie du terrain, cours d'eau, présence d'eau visible", "type": "text", "multiline": true, "required": false, "observation": false,
+          "helpText": "Puits, étang, mare, nappes phréatiques hautes (Google Maps, cartes IGN)." },
+        { "id": "etu-situation", "label": "Situation du bâtiment", "type": "multi", "allowOther": true, "required": false,
+          "options": [
+            { "value": "urbaine", "label": "Zone urbaine" },
+            { "value": "plateau-vente", "label": "Plateau venté en rase campagne" },
+            { "value": "fond-vallee", "label": "Fond de vallée" },
+            { "value": "foret", "label": "Bordure de forêt" },
+            { "value": "cours-eau", "label": "Bordure de cours d'eau" }
+          ] },
+        { "id": "etu-courbes", "label": "Courbes du terrain", "type": "text", "required": false, "observation": false }
+      ]
+    }
+  ]
+}

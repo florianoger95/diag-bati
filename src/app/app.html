@@ -1,0 +1,19 @@
+@if (updates.updateReady()) {
+  <div class="update banner banner-info" role="status">
+    <span>Une nouvelle version de l'app est prête.</span>
+    <span class="spacer"></span>
+    <button class="btn btn-primary btn-small" type="button" (click)="updates.apply()">Mettre à jour</button>
+  </div>
+}
+@if (updates.broken()) {
+  <div class="update banner banner-danger" role="alert">
+    L'app hors ligne est endommagée : reconnectez l'iPad à Internet puis rouvrez-la. Vos données ne sont pas touchées.
+  </div>
+}
+<header class="topbar">
+  <a class="brand" routerLink="/" aria-label="Accueil — dossiers">Diag bâti</a>
+</header>
+<main>
+  <router-outlet />
+</main>
+<app-dialog-host />
