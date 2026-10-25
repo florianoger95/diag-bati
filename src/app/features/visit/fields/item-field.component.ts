@@ -10,6 +10,7 @@ import {
   Urgency,
 } from '../../../core/model/data';
 import { ResolvedItem } from '../../../core/model/template';
+import { CompiledLexicon, findTerms, toggleExclusion } from '../../../core/report/lexicon';
 import { isOutOfRange } from '../../../core/templates/template-engine';
 import { AutoGrowDirective } from '../../../shared/auto-grow.directive';
 import { NumberInputComponent } from '../../../shared/number-input.component';
@@ -51,6 +52,8 @@ export class ItemFieldComponent {
   /** Photos rattachées à l'item (affichées seulement si withPhotos). */
   readonly photos = input<PhotoView[]>([]);
   readonly withPhotos = input(false);
+  /** Lexique actif (annexe importée) : termes détectés affichés sous l'observation. */
+  readonly lexicon = input<CompiledLexicon | null>(null);
   readonly changed = output<FieldChange>();
   readonly media = output<MediaRequest>();
   readonly openPhoto = output<string>();
@@ -65,6 +68,12 @@ export class ItemFieldComponent {
   readonly canDefect = computed(() => this.allowDefect() && !this.item().role);
   /** Boutons photo discrets sur les items qui ne sont pas des items photo. */
   readonly compactPhotos = computed(() => this.withPhotos() && this.item().type !== 'photo' && !this.item().role);
+  readonly lexiconTerms = computed(() => {
+    const lexicon = this.lexicon();
+    const text = this.observation();
+    if (!lexicon || !text) return [];
+    return findTerms(text, lexicon).map((o, index) => ({ index, word: text.slice(o.start, o.end), excluded: o.excluded }));
+  });
   readonly value = computed(() => this.state()?.value ?? null);
   readonly observation = computed(() => this.state()?.observation ?? '');
   readonly showObservation = computed(() => {
@@ -137,6 +146,12 @@ export class ItemFieldComponent {
     const next = `${current.trimEnd()}${sep}${snippet}`;
     if (target === 'value') this.emit({ value: next });
     else this.emit({ observation: next });
+  }
+
+  /** Ne pas marquer (ou marquer à nouveau) une occurrence d'un terme du lexique. */
+  toggleTerm(index: number): void {
+    const lexicon = this.lexicon();
+    if (lexicon) this.emit({ observation: toggleExclusion(this.observation(), lexicon, index) });
   }
 
   // ---- désordre -------------------------------------------------------------

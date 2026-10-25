@@ -1,0 +1,51 @@
+<div class="page stack">
+  <h1>Rapport</h1>
+
+  <section class="card stack" aria-labelledby="t-prets">
+    <h2 id="t-prets">Avant de générer</h2>
+    <ul class="checks">
+      <li [class.ok]="cabinet.firm().name" [class.warn]="!cabinet.firm().name">
+        Cabinet : {{ cabinet.firm().name || 'coordonnées non renseignées' }}
+      </li>
+      <li [class.ok]="cabinet.logo()" [class.warn]="!cabinet.logo()">Logo {{ cabinet.logo() ? 'importé' : 'absent' }}</li>
+      <li [class.ok]="cabinet.font()" [class.warn]="!cabinet.font()">
+        Police PDF : {{ cabinet.font()?.family ?? 'Overlock (Maiandra GD non importée)' }}
+      </li>
+      <li [class.ok]="cabinet.annex()" [class.warn]="!cabinet.annex()">
+        {{ cabinet.annex() ? 'Annexe lexique importée : astérisques et annexe ajoutés' : 'Annexe lexique non importée : ni astérisques ni annexe' }}
+      </li>
+      <li class="ok">{{ photoCount() }} image{{ photoCount() > 1 ? 's' : '' }} dans la visite</li>
+    </ul>
+    <a class="btn btn-small" routerLink="/reglages" style="align-self: flex-start">Ouvrir les réglages</a>
+  </section>
+
+  <div class="row">
+    <button class="btn btn-primary" type="button" [disabled]="!!busy() || !ready()" (click)="generate('pdf')">📄 Générer le PDF</button>
+    <button class="btn" type="button" [disabled]="!!busy() || !ready()" (click)="generate('docx')">📝 Générer le Word (.docx)</button>
+  </div>
+  @if (!ready()) { <p class="hint">Chargement de la configuration du rapport…</p> }
+
+  @if (busy(); as format) {
+    <section class="card stack" role="status" aria-live="polite">
+      <strong>Génération du {{ format === 'pdf' ? 'PDF' : 'document Word' }}…</strong>
+      @if (step(); as s) {
+        <span class="hint">{{ s.label }}{{ s.total > 1 ? ' : ' + s.done + ' / ' + s.total : '' }}</span>
+        <div class="bar"><span [style.width.%]="percent()"></span></div>
+      }
+      <span class="hint">Les images sont traitées une par une ; gardez l'app ouverte.</span>
+    </section>
+  }
+
+  @for (r of results(); track r.format) {
+    <section class="card stack result" [attr.aria-label]="'Rapport ' + r.format">
+      <strong>{{ r.fileName }}</strong>
+      <span class="hint">{{ formatBytes(r.blob.size) }} · généré en {{ r.seconds }} s</span>
+      <div class="row">
+        @if (canShare) {
+          <button class="btn btn-primary" type="button" (click)="share(r)">Partager / enregistrer dans Fichiers</button>
+        }
+        <a class="btn" [href]="r.url" [attr.download]="r.fileName" target="_blank" rel="noopener">Ouvrir</a>
+      </div>
+    </section>
+  }
+</div>

@@ -1,0 +1,29 @@
+{
+  "page": { "size": "A4", "marginsMm": [18, 20, 18, 20] },
+  "title": "ÉTAT ET DIAGNOSTIC DE L'EXISTANT",
+  "font": { "family": "Maiandra GD", "size": 10.5 },
+  "colors": {
+    "text": "#000000",
+    "heading": "#000000",
+    "revision": "#7030A0",
+    "defect": "#C00000",
+    "accent": "#1F4E79",
+    "caption": "#44546A"
+  },
+  "blocks": ["cover", "body", "conclusion", "defects", "works", "lexicon"],
+  "sectionPageBreak": true,
+  "revisionHighlight": "all",
+  "photos": { "columns": 2, "maxLongSide": 1200, "jpegQuality": 0.72, "planMaxLongSide": 2000 },
+  "emptyInstance": "omit",
+  "masterPlanItem": "gen-plan-masse",
+  "lexicon": { "mark": "every", "annex": "all" },
+  "headings": {
+    "conclusion": "CONCLUSION",
+    "defects": "SYNTHÈSE DES DÉSORDRES",
+    "works": "RÉCAPITULATIF DES TRAVAUX ET ÉCHÉANCES",
+    "safety": "Mesures de sécurité à court terme",
+    "maintenance": "Mesures d'entretien",
+    "lexicon": "ANNEXE – LEXIQUE"
+  },
+  "footer": "{page} / {pages}"
+}

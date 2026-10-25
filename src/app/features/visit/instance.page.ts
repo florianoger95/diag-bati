@@ -1,6 +1,7 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, Injector, input, untracked } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ResolvedItem } from '../../core/model/template';
+import { CabinetService } from '../../core/services/cabinet.service';
 import { DialogService } from '../../core/services/dialog.service';
 import { MediaRequest } from '../../shared/photo-strip.component';
 import { FieldChange, ItemFieldComponent } from './fields/item-field.component';
@@ -21,6 +22,9 @@ export class InstancePage {
   private readonly injector = inject(Injector);
   private readonly route = inject(ActivatedRoute);
 
+  private readonly cabinet = inject(CabinetService);
+  /** Lexique actif seulement si l'annexe est importée (sinon pas d'astérisques au rapport). */
+  readonly lexicon = computed(() => (this.cabinet.annex() ? this.cabinet.lexicon() : null));
   readonly instance = computed(() => this.store.instance(this.instanceId()));
   readonly section = computed(() => {
     const i = this.instance();

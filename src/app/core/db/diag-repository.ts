@@ -11,6 +11,7 @@ import {
   VisitCursor,
 } from '../model/data';
 import { ChecklistTemplate } from '../model/template';
+import { FirmInfo } from '../report/report-model';
 import { isPhotoVisible } from '../templates/template-engine';
 import { DiagDb } from './diag-db';
 
@@ -24,6 +25,22 @@ export interface NewPhoto {
   width: number;
   height: number;
   caption?: string;
+}
+
+export type AssetKey = 'logo' | 'font' | 'annex';
+
+export interface AssetMeta {
+  name: string;
+  width?: number;
+  height?: number;
+  family?: string;
+  pages?: number;
+}
+
+export interface StoredAsset extends AssetMeta {
+  blob: Blob;
+  size: number;
+  updatedAt: number;
 }
 
 /** Binaire stocké sans Blob (repli WebKit en navigation privée). */
@@ -491,6 +508,32 @@ export class DiagRepository {
         await db.photos.update(photo.id, { removedInRevision: visit.revision });
       }
     });
+  }
+
+  // ---- fichiers et identité du cabinet (jamais dans le dépôt public) ---------------
+
+  async setAsset(key: AssetKey, blob: Blob, meta: AssetMeta): Promise<void> {
+    const data = await this.storable(blob);
+    await this.db.settings.put({ key: `asset:${key}`, value: { ...meta, data, size: blob.size, updatedAt: this.deps.now() } });
+  }
+
+  async getAsset(key: AssetKey): Promise<StoredAsset | undefined> {
+    const value = (await this.db.settings.get(`asset:${key}`))?.value as (AssetMeta & { data: Blob | StoredBinary; size: number; updatedAt: number }) | undefined;
+    if (!value) return undefined;
+    const { data, ...meta } = value;
+    return { ...meta, blob: data instanceof Blob ? data : new Blob([data.data], { type: data.type }) };
+  }
+
+  async deleteAsset(key: AssetKey): Promise<void> {
+    await this.db.settings.delete(`asset:${key}`);
+  }
+
+  async getFirm(): Promise<FirmInfo | undefined> {
+    return (await this.db.settings.get('firm'))?.value as FirmInfo | undefined;
+  }
+
+  async setFirm(firm: FirmInfo): Promise<void> {
+    await this.db.settings.put({ key: 'firm', value: firm });
   }
 
   async setLegend(projectId: string, legend: LegendEntry[]): Promise<void> {

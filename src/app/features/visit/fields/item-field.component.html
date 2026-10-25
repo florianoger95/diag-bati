@@ -99,6 +99,18 @@
     <textarea class="input observation" rows="1" placeholder="Observations…" [appAutoGrow]="observation()"
               [value]="observation()" [readOnly]="readonly()" [attr.aria-label]="'Observations — ' + it.label"
               (input)="setObservation($any($event.target).value)"></textarea>
+    @if (lexiconTerms().length) {
+      <div class="lexicon" aria-label="Termes du lexique marqués d'un astérisque dans le rapport">
+        <span class="hint">Lexique :</span>
+        @for (t of lexiconTerms(); track t.index) {
+          <button class="term" type="button" [class.off]="t.excluded" [disabled]="readonly()" (click)="toggleTerm(t.index)"
+                  [attr.aria-pressed]="!t.excluded"
+                  [attr.aria-label]="t.word + (t.excluded ? ' : non marqué, toucher pour marquer' : ' : marqué, toucher pour ne pas marquer ici')">
+            {{ t.word }}{{ t.excluded ? '' : '*' }}
+          </button>
+        }
+      </div>
+    }
   }
 
   @if (compactPhotos() && photos().length) {

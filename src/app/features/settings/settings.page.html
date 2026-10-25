@@ -1,0 +1,99 @@
+<div class="page stack">
+  <a class="btn btn-ghost" routerLink="/" style="align-self: flex-start">← Dossiers</a>
+  <h1>Réglages</h1>
+  <p class="hint">
+    Ces informations et fichiers restent sur cet iPad : ils ne sont jamais publiés avec l'app.
+    Ils sont inclus dans la sauvegarde (Lot 4).
+  </p>
+
+  <section class="card stack" aria-labelledby="t-cabinet">
+    <h2 id="t-cabinet">Cabinet</h2>
+    <label class="label" for="firm-name">Nom du cabinet</label>
+    <input id="firm-name" class="input" type="text" [value]="name()" (input)="onFirm($any($event.target).value, lines())" />
+    <label class="label" for="firm-lines">Coordonnées (une ligne par information)</label>
+    <textarea id="firm-lines" class="input" rows="3" [appAutoGrow]="lines()" [value]="lines()"
+              placeholder="Adresse&#10;E-mail&#10;Téléphone" (input)="onFirm(name(), $any($event.target).value)"></textarea>
+    <p class="hint">Imprimées sous le logo, sur la page de garde du rapport.</p>
+  </section>
+
+  <section class="card stack" aria-labelledby="t-logo">
+    <h2 id="t-logo">Logo</h2>
+    <div class="file">
+      @if (logoUrl(); as url) {
+        <img class="preview" [src]="url" alt="Logo du cabinet" />
+        <button class="btn btn-small btn-danger" type="button" (click)="remove('logo', 'le logo')">Retirer</button>
+      } @else {
+        <span class="missing">Aucun logo</span>
+      }
+      <label class="btn btn-small">
+        {{ cabinet.logo() ? 'Remplacer' : 'Importer une image' }}
+        <input type="file" accept="image/*" hidden (change)="pick($event, 'logo')" data-testid="import-logo" />
+      </label>
+      @if (busy() === 'logo') { <span class="hint">Import…</span> }
+    </div>
+    <p class="hint">Affiché en haut de chaque page du rapport (PDF et Word). PNG ou JPEG de préférence.</p>
+  </section>
+
+  <section class="card stack" aria-labelledby="t-police">
+    <h2 id="t-police">Police du rapport PDF</h2>
+    <div class="file">
+      @if (cabinet.font(); as font) {
+        <span class="ok">✓ {{ font.family }}</span><span class="hint">({{ font.name }}, {{ formatBytes(font.size) }})</span>
+        <button class="btn btn-small btn-danger" type="button" (click)="remove('font', 'la police')">Retirer</button>
+      } @else {
+        <span class="missing">Police non importée : le PDF utilise Overlock.</span>
+      }
+      <label class="btn btn-small">
+        {{ cabinet.font() ? 'Remplacer' : 'Importer une police (.ttf)' }}
+        <input type="file" accept=".ttf,.otf,font/ttf,font/otf,application/x-font-ttf,application/octet-stream" hidden
+               (change)="pick($event, 'font')" data-testid="import-font" />
+      </label>
+      @if (busy() === 'font') { <span class="hint">Vérification…</span> }
+    </div>
+    <details>
+      <summary>Comment récupérer Maiandra GD ?</summary>
+      <p>
+        Sur votre PC, la police se trouve dans <code>C:\Windows\Fonts\MAIAN.TTF</code>. Copiez ce fichier dans iCloud Drive
+        (ou envoyez-le-vous par AirDrop), puis importez-le ici depuis l'app Fichiers. Maiandra n'existe qu'en style normal :
+        le gras et l'italique sont simulés dans le PDF. Le document Word, lui, utilise la police installée sur l'ordinateur.
+      </p>
+    </details>
+  </section>
+
+  <section class="card stack" aria-labelledby="t-annexe">
+    <h2 id="t-annexe">Annexe lexique</h2>
+    <div class="file">
+      @if (cabinet.annex(); as annex) {
+        <span class="ok">✓ {{ annex.name }}</span><span class="hint">({{ annex.pages }} pages, importée le {{ annex.updatedAt | date: 'dd/MM/yyyy' }})</span>
+        <button class="btn btn-small btn-danger" type="button" (click)="remove('annex', 'l’annexe')">Retirer</button>
+      } @else {
+        <span class="missing">Annexe non importée : pas d'astérisques ni d'annexe dans les rapports.</span>
+      }
+      <label class="btn btn-small">
+        {{ cabinet.annex() ? 'Remplacer' : 'Importer le PDF de l’annexe' }}
+        <input type="file" accept="application/pdf" hidden (change)="pick($event, 'annex')" data-testid="import-annex" />
+      </label>
+      @if (busy() === 'annex') { <span class="hint">Lecture…</span> }
+    </div>
+    <details>
+      <summary>Comment préparer ce PDF ?</summary>
+      <p>
+        Dans Word, copiez les pages « ANNEXE – LEXIQUE » d'un rapport dans un document vierge <strong>sans en-tête ni
+        pied de page</strong>, puis enregistrez-le en PDF. L'app y ajoutera le logo et la pagination du rapport.
+        Les schémas sont des images tierces : ce fichier reste sur l'iPad et n'est jamais publié.
+      </p>
+      <p>
+        Les termes reconnus sont listés dans <code>config/lexicon.json</code> ({{ cabinet.lexicon()?.lexicon?.terms?.length ?? 0 }} termes).
+      </p>
+    </details>
+  </section>
+
+  <section class="card stack" aria-labelledby="t-stockage">
+    <h2 id="t-stockage">Stockage</h2>
+    @if (storageText(); as t) { <p>{{ t }}.</p> }
+    <p>
+      @if (storage.persisted() === true) { <span class="badge badge-ok">Stockage persistant accordé</span> }
+      @else if (storage.persisted() === false) { <span class="badge badge-warn">Stockage non persistant</span> }
+    </p>
+  </section>
+</div>

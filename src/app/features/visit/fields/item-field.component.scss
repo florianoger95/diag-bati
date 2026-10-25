@@ -18,6 +18,12 @@
 .date { width: auto; }
 .range-hint { margin: 0; color: var(--warn); font-weight: 600; }
 .observation { font-size: 17px; }
+.lexicon { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: -4px; }
+.term {
+  min-height: 36px; padding: 2px 10px; border-radius: 999px; font-size: 15px;
+  border: 1px dashed var(--primary); background: var(--primary-soft); color: var(--primary); cursor: pointer;
+}
+.term.off { text-decoration: line-through; background: transparent; color: var(--muted); border-color: var(--border); }
 .tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .snippet { font-size: 15px; min-height: 40px; padding: 4px 12px; }
 .defect-choices { align-items: center; }

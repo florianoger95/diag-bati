@@ -7,7 +7,23 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
 - **Lot 1** : socle, dossiers, fiches pilotées par JSON, synthèse et clôture.
 - **Lot 2** : photos sur chaque item, plans PDF, croquis, annotation au doigt, légende, conclusion.
 
-À venir : rapports PDF/DOCX au Lot 3, mises à jour et sauvegarde au Lot 4.
+- **Lot 3** : rapports PDF et Word, lexique avec astérisques automatiques, réglages du cabinet.
+
+À venir : mises à jour successives et sauvegarde au Lot 4.
+
+## Rapports PDF et Word
+
+- **Réglages** (⚙ en haut à droite), à faire une fois :
+  - nom et coordonnées du cabinet, logo ;
+  - police Maiandra GD : copier `C:\Windows\Fonts\MAIAN.TTF` dans iCloud Drive, puis l'importer ;
+  - annexe lexique : PDF exporté de Word, depuis un document sans en-tête ni pied de page.
+
+  Ces fichiers restent sur l'iPad et ne sont jamais publiés.
+- **Rapport** (menu de la visite) : « Générer le PDF » ou « Générer le Word ». Les deux se font hors ligne, et le fichier se partage vers Fichiers, AirDrop ou Mail.
+- Le rapport suit `public/config/report.config.json` : ordre des blocs, titres, couleurs, marges, taille des photos.
+- **Lexique** : `public/config/lexicon.json` liste les termes, avec leurs pluriels et variantes, ainsi que les exceptions comme « tableau électrique ».
+  - Les astérisques sont posés à la génération, seulement si l'annexe est importée.
+  - Pendant la saisie, les termes détectés s'affichent sous l'observation ; touchez-en un pour ne pas le marquer à cet endroit.
 
 ## Photos, plans et annotation
 

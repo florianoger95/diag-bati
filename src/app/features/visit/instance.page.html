@@ -27,7 +27,7 @@
         <h2 class="footer-title">Synthèse de la fiche</h2>
       }
       <app-item-field [item]="item" [state]="state(item)" [readonly]="store.readOnly()" (changed)="onChange(item, $event)"
-                      [withPhotos]="true" [photos]="store.photoViews(inst.id, item.id)"
+                      [withPhotos]="true" [photos]="store.photoViews(inst.id, item.id)" [lexicon]="lexicon()"
                       (media)="onMedia(item, $event)" (openPhoto)="openPhoto($event)" />
     }
 

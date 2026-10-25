@@ -457,6 +457,11 @@ Ordre de grandeur : 120 photos ≈ 60 Mo par dossier.
 
 **Mémoire** : jamais plus d'un canvas pleine taille ouvert à la fois. pdf.js est détruit après chaque import (`destroy()`).
 
+**Rapport (choix de réalisation, Lot 3)** :
+- **Plans dans le PDF** : la page vectorielle du plan est posée telle quelle. Les annotations sont posées par-dessus en calque PNG transparent, plutôt qu'en tracés vectoriels pdf-lib : le rendu reste identique à l'écran, avec un seul moteur de dessin.
+- **Annexe** : aucun titre n'est ajouté, puisque la première page de l'annexe importée porte déjà « ANNEXE – LEXIQUE ». L'app ajoute le logo et la pagination sur ces pages.
+- **Renvoi des photos** : « (État des tuiles) » sous la légende. La flèche « → » est absente de la police de repli.
+
 **Binaires en navigation privée** *(constaté au Lot 2)* : WebKit refuse d'enregistrer des `Blob` dans IndexedDB dans une session éphémère (navigation privée de Safari, contextes de test). L'app le détecte une fois par session ; dans ce cas, elle stocke le même binaire en `ArrayBuffer` (jamais en base64) et le relit en `Blob`. En usage normal, les images restent des `Blob`.
 
 **Service worker / GitHub Pages** :
