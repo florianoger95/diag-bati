@@ -8,6 +8,8 @@ export async function waitForOfflineReady(page: Page): Promise<void> {
   });
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  // comme sur l'iPad : attendre « Prête hors ligne » avant de passer en mode avion
+  await expect(page.getByTestId('offline-ready')).toBeVisible({ timeout: 30_000 });
 }
 
 /** Ouvre une fiche ou une page de la visite (via le tiroir en portrait). */

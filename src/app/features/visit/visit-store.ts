@@ -64,6 +64,8 @@ export class VisitStore implements OnDestroy {
   private readonly storage = inject(StorageService);
 
   readonly readOnly = computed(() => this.visit()?.status !== 'draft');
+  /** Une mise à jour plus récente existe : cette visite est définitivement en lecture seule. */
+  readonly newerVisitId = signal<string | null>(null);
 
   readonly orderedInstances = computed<SectionInstance[]>(() => {
     const visit = this.visit();
@@ -153,6 +155,8 @@ export class VisitStore implements OnDestroy {
     this.template.set(resolveTemplate(project.templateSnapshot));
     this.answers.set(new Map(answers.map((a) => [answerKey(a.instanceId, a.itemId), a])));
     this.visit.set(visit);
+    const latest = (await this.repo.getVisitsOfProject(projectId)).at(-1);
+    this.newerVisitId.set(latest && latest.revision > visit.revision ? latest.id : null);
     await this.loadPhotos();
   }
 
@@ -217,6 +221,37 @@ export class VisitStore implements OnDestroy {
 
   flush(): Promise<void> {
     return this.queue.flush();
+  }
+
+  /** Mise à jour : la réponse a été modifiée dans cette visite. */
+  isChangedHere(answer: Answer | undefined): boolean {
+    const visit = this.visit();
+    return !!visit && !!answer && visit.revision > 0 && answer.changedInRevision === visit.revision;
+  }
+
+  /** Annule les modifications faites dans cette mise à jour (retour à l'état repris). */
+  async revertAnswer(instanceId: string, itemId: string): Promise<void> {
+    const visit = this.visit();
+    if (!visit || this.readOnly()) return;
+    await this.queue.flush();
+    try {
+      const reverted = await this.repo.revertAnswer(visit.id, instanceId, itemId);
+      const map = new Map(this.answers());
+      const key = answerKey(instanceId, itemId);
+      if (reverted) map.set(key, reverted);
+      else map.delete(key);
+      this.answers.set(map);
+    } catch (e) {
+      this.dialogs.notify((e as Error).message, true);
+    }
+  }
+
+  /** Visites précédentes et leurs réponses (rapport d'une mise à jour). */
+  async history(): Promise<{ visit: Visit; answers: Answer[] }[]> {
+    const visit = this.visit();
+    if (!visit || visit.revision === 0) return [];
+    const previous = (await this.repo.getVisitsOfProject(visit.projectId)).filter((v) => v.revision < visit.revision);
+    return Promise.all(previous.map(async (v) => ({ visit: v, answers: await this.repo.getAnswers(v.id) })));
   }
 
   // ---- photos, plans, croquis -----------------------------------------------

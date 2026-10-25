@@ -26,8 +26,17 @@ export class CabinetService {
   readonly lexicon = signal<CompiledLexicon | null>(null);
   private loading?: Promise<void>;
 
+  private done = false;
+
+  /** Charge une fois ; recharge si la configuration n'avait pas pu être lue (hors ligne trop tôt). */
   load(): Promise<void> {
-    this.loading ??= this.doLoad();
+    if (!this.loading || (this.done && !this.config())) this.loading = this.doLoad();
+    return this.loading;
+  }
+
+  /** Relit les réglages (après une restauration). */
+  reload(): Promise<void> {
+    this.loading = this.doLoad();
     return this.loading;
   }
 
@@ -44,6 +53,7 @@ export class CabinetService {
     } catch {
       // hors ligne avant la première mise en cache : le rapport l'indiquera
     }
+    this.done = true;
   }
 
   async setFirm(firm: FirmInfo): Promise<void> {

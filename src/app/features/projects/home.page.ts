@@ -1,7 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { AppUpdateService } from '../../core/services/app-update.service';
+import { BackupService } from '../../core/services/backup.service';
 import { liveQuery } from 'dexie';
 import { from } from 'rxjs';
 import { DiagRepository, ProjectSummary } from '../../core/db/diag-repository';
@@ -33,8 +35,12 @@ export class HomePage {
   readonly catalog = inject(TemplateCatalogService);
 
   readonly tabs = TABS;
+  private readonly backup = inject(BackupService);
+  readonly updates = inject(AppUpdateService);
+  private readonly router = inject(Router);
   readonly tab = signal<Tab>('draft');
   readonly showWhy = signal(false);
+  readonly exporting = signal<string | null>(null);
 
   readonly projects = toSignal(from(liveQuery(() => this.data.repo.listProjects())), { initialValue: null });
 
@@ -68,6 +74,24 @@ export class HomePage {
   visitDate(s: ProjectSummary): string | null {
     const v = s.latestVisit.fields['date-visite'];
     return typeof v === 'string' && v ? v : null;
+  }
+
+  async export(s: ProjectSummary): Promise<void> {
+    this.exporting.set(s.project.id);
+    try {
+      await this.backup.exportProject(s.project.id);
+    } finally {
+      this.exporting.set(null);
+    }
+  }
+
+  async restore(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    const projectId = await this.backup.importFile(file);
+    if (projectId) await this.router.navigate(['/dossiers', projectId]);
   }
 
   async remove(s: ProjectSummary): Promise<void> {

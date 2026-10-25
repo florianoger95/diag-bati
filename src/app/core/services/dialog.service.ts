@@ -18,7 +18,15 @@ export interface PromptRequest {
   resolve: (value: string | null) => void;
 }
 
-export type DialogRequest = ConfirmRequest | PromptRequest;
+export interface ChoiceRequest {
+  kind: 'choice';
+  title: string;
+  message: string;
+  options: { id: string; label: string; primary?: boolean; danger?: boolean }[];
+  resolve: (id: string | null) => void;
+}
+
+export type DialogRequest = ConfirmRequest | PromptRequest | ChoiceRequest;
 
 /** Boîtes de dialogue tactiles (les dialogues natifs de Safari sont petits et bloquants). */
 @Injectable({ providedIn: 'root' })
@@ -46,6 +54,11 @@ export class DialogService {
         confirmLabel: options.confirmLabel ?? 'Valider',
       });
     });
+  }
+
+  /** Plusieurs choix (renvoie l'identifiant choisi, ou null si annulé). */
+  choose(title: string, message: string, options: ChoiceRequest['options']): Promise<string | null> {
+    return new Promise((resolve) => this.current.set({ kind: 'choice', title, message, options, resolve }));
   }
 
   close(result: boolean | string | null): void {

@@ -9,7 +9,7 @@
             [attr.aria-expanded]="drawerOpen()" aria-controls="visit-nav">☰ Fiches</button>
     <a class="title" [routerLink]="['/dossiers', projectId()]">
       <strong>{{ store.project()?.fields?.['projet'] || store.project()?.reference }}</strong>
-      <span class="hint">{{ visit.revision === 0 ? 'Visite initiale' : 'Mise à jour ' + visit.revision }}</span>
+      <span class="hint">{{ visit.revision === 0 ? 'Visite initiale' : 'Mise à jour ' + visit.revision + (visit.reason ? ' — ' + visit.reason : '') }}</span>
     </a>
     <span class="spacer"></span>
     <span class="save" role="status" aria-live="polite">
@@ -25,7 +25,13 @@
       }
     </span>
   </div>
-  @if (store.readOnly()) {
+  @if (store.newerVisitId(); as newer) {
+    <div class="banner banner-info readonly">
+      Visite antérieure : lecture seule (une mise à jour plus récente existe).
+      <span class="spacer"></span>
+      <a class="btn btn-small" [routerLink]="['/dossiers', visit.projectId, 'v', newer]">Ouvrir la dernière mise à jour</a>
+    </div>
+  } @else if (store.readOnly()) {
     <div class="banner banner-info readonly">
       Visite clôturée : lecture seule.
       <span class="spacer"></span>

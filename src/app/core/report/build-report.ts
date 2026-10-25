@@ -2,8 +2,9 @@
 import { usedColors } from '../annotation/shapes';
 import { ActionRow, Answer, MeasureRow, OTHER_VALUE, Photo, Project, URGENCIES, URGENCY_LABELS, Urgency, Visit } from '../model/data';
 import { ResolvedItem, ResolvedSection, ResolvedTemplate } from '../model/template';
-import { answerKey, collectActions, collectDefects, hasValue, sectionItems } from '../templates/template-engine';
+import { answerKey, collectActions, collectDefects, hasValue, isRevised, sectionItems } from '../templates/template-engine';
 import { applyLexicon, CompiledLexicon, LexiconState, stripExclusions } from './lexicon';
+import { diffWords } from './text-diff';
 import { Block, FirmInfo, ReportConfig, ReportModel, ReportPhoto, Run, text } from './report-model';
 
 export interface ReportInput {
@@ -20,6 +21,8 @@ export interface ReportInput {
   firm?: FirmInfo;
   /** Date du rapport (ISO). */
   reportDate: string;
+  /** Visites précédentes du dossier (mises à jour : dates, historique des témoins). */
+  history?: { visit: Visit; answers: Answer[] }[];
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -100,6 +103,21 @@ class Builder {
     return this.input.config.colors;
   }
 
+  /** Passages modifiés par une mise à jour : état de référence, ou null si rien n'est à surligner. */
+  reference(answer: Answer | undefined): { ref?: { value: Answer['value']; other?: string; observation: string } } | null {
+    const { visit, config } = this.input;
+    if (!answer || !isRevised(answer, visit.revision, config.revisionHighlight)) return null;
+    return { ref: config.revisionHighlight === 'latest' ? answer.inherited : answer.baseline };
+  }
+
+  /** Runs d'un texte, avec en violet ce qui diffère du texte de référence. */
+  revisedRuns(current: string, reference: { ref?: unknown } | null, before: string | undefined, style: Omit<Run, 'text'> = {}): Run[] {
+    if (!current) return [];
+    if (!reference) return [text(this.lex(current), style)];
+    if (before === undefined) return [text(this.lex(current), { ...style, revised: true })];
+    return diffWords(before, current).map((s) => text(this.lex(s.text), { ...style, ...(s.added ? { revised: true } : {}) }));
+  }
+
   /** Applique le lexique à un texte du corps du rapport. */
   lex(t: string): string {
     const clean = stripExclusions(t);
@@ -150,7 +168,18 @@ function cover(b: Builder, masterPlan: Photo | undefined): number {
   if (adresse) b.paragraph([text(adresse)], { align: 'right' });
   b.blocks.push({ type: 'spacer', lines: 2 });
   b.heading(0, config.title, { align: 'center' });
-  b.paragraph([text(formatDate(reportDate), { italic: true })], { align: 'center' });
+  if (visit.revision > 0) {
+    // « 17/09/2026 – Mise à jour suite à curage le 23/10/2026 », les mises à jour en violet
+    const visits = [...(b.input.history ?? []).map((h) => h.visit), visit].sort((x, y) => x.revision - y.revision);
+    const dateOf = (v: Visit) => formatDate(String(v.fields['date-visite'] ?? '').split('T')[0] || new Date(v.createdAt).toISOString().split('T')[0]);
+    const runs: Run[] = [text(dateOf(visits[0]), { italic: true })];
+    for (const v of visits.slice(1)) {
+      runs.push(text(` – Mise à jour${v.reason ? ` ${v.reason}` : ''} le ${dateOf(v)}`, { italic: true, revised: true }));
+    }
+    b.paragraph(runs, { align: 'center' });
+  } else {
+    b.paragraph([text(formatDate(reportDate), { italic: true })], { align: 'center' });
+  }
   b.blocks.push({ type: 'spacer', lines: 1 });
   for (const field of template.visitFields) {
     const value = formatAnswer(field, { value: (visit.fields[field.id] as Answer['value']) ?? null });
@@ -166,14 +195,46 @@ function cover(b: Builder, masterPlan: Photo | undefined): number {
 
 // ---- corps -------------------------------------------------------------------------
 
+/** Mesures avec historique (témoins de fissure) : relevés datés de chaque visite. */
+function measureHistory(b: Builder, instanceId: string, item: ResolvedItem): string {
+  const { history = [], visit } = b.input;
+  const entries = [...history.map((h) => ({ visit: h.visit, answers: h.answers })), { visit, answers: b.input.answers }];
+  const rows = new Map<string, { point: string; steps: string[] }>();
+  for (const entry of entries) {
+    const answer = entry.answers.find((a) => a.instanceId === instanceId && a.itemId === item.id);
+    const date = formatDate(String(entry.visit.fields['date-visite'] ?? '').split('T')[0]);
+    for (const row of (answer?.value as MeasureRow[] | null) ?? []) {
+      const cells = formatAnswer({ ...item, measures: item.measures }, { value: [{ ...row, point: '' }] });
+      if (!cells) continue;
+      const step = `${cells}${date ? ` (${date})` : ''}`;
+      const current = rows.get(row.id) ?? { point: row.point, steps: [] };
+      // un relevé identique au précédent n'est pas répété
+      if (current.steps.at(-1)?.replace(/ \(.*\)$/, '') !== cells) current.steps.push(step);
+      current.point = row.point || current.point;
+      rows.set(row.id, current);
+    }
+  }
+  return [...rows.values()].map((r) => `${r.point ? `${r.point} : ` : ''}${r.steps.join(', puis ')}`).join(' – ');
+}
+
 function itemParagraph(b: Builder, instanceId: string, item: ResolvedItem): Run[] | null {
   const answer = b.answer(instanceId, item.id);
   const photos = b.photosOf(instanceId, item.id).filter((p) => p.kind === 'photo');
-  const value = item.type === 'photo' ? '' : formatAnswer(item, answer);
+  const value = item.type === 'photo' ? '' : item.history && item.type === 'measures' ? measureHistory(b, instanceId, item) : formatAnswer(item, answer);
   const observation = (answer?.observation ?? '').trim();
   if (!value && !observation && !answer?.defect && !photos.length) return null;
-  const body = [value, observation].filter(Boolean).map((s, i, all) => (i < all.length - 1 && !/[.!?:;]$/.test(s) ? `${s}.` : s)).join(' ');
-  const runs: Run[] = [text(`- ${item.label}${body ? ' : ' : ''}`), text(b.lex(body))];
+  const reference = b.reference(answer);
+  const refValue = reference?.ref ? formatAnswer(item, reference.ref) : undefined;
+  const runs: Run[] = [text(`- ${item.label}${value || observation ? ' : ' : ''}`)];
+  if (value) {
+    const changed = reference && (refValue === undefined || refValue !== value) && !item.history;
+    runs.push(text(b.lex(value), changed ? { revised: true } : {}));
+    if (observation && !/[.!?:;]$/.test(value)) runs.push(text('.'));
+  }
+  if (observation) {
+    if (value) runs.push(text(' '));
+    runs.push(...b.revisedRuns(observation, reference, reference?.ref ? reference.ref.observation.trim() : undefined));
+  }
   if (answer?.defect) {
     runs.push(text(` — Désordre (${urgencyLower(answer.defect.urgency)})`, { bold: true, color: b.colors.defect }));
   }
@@ -185,17 +246,26 @@ function footerBlocks(b: Builder, instanceId: string, item: ResolvedItem): Block
   const answer = b.answer(instanceId, item.id);
   if (!answer) return [];
   const label: Block = { type: 'paragraph', runs: [text(`${item.label} :`, { italic: true, underline: true })], style: 'label' };
+  const reference = b.reference(answer);
   if (item.type === 'actions') {
     const rows = ((answer.value as ActionRow[] | null) ?? []).filter((r) => r.text.trim());
     if (!rows.length) return [];
-    return [label, ...rows.map((r): Block => ({
-      type: 'paragraph', bullet: true,
-      runs: [text(`${b.lex(r.text.trim())} (${urgencyLower(r.urgency)})`)],
-    }))];
+    const before = reference?.ref ? ((reference.ref.value as ActionRow[] | null) ?? []) : undefined;
+    return [label, ...rows.map((r): Block => {
+      const unchanged = before?.some((o) => o.id === r.id && o.text.trim() === r.text.trim() && o.urgency === r.urgency);
+      return {
+        type: 'paragraph', bullet: true,
+        runs: [text(`${b.lex(r.text.trim())} (${urgencyLower(r.urgency)})`, reference && !unchanged ? { revised: true } : {})],
+      };
+    })];
   }
   const body = [formatAnswer(item, answer), answer.observation.trim()].filter(Boolean).join('\n');
   if (!body) return [];
-  return [label, ...body.split(/\n+/).map((line): Block => ({ type: 'paragraph', runs: [text(b.lex(line.trim()))] }))];
+  const refBody = reference?.ref ? [formatAnswer(item, reference.ref), reference.ref.observation.trim()].filter(Boolean).join('\n') : undefined;
+  return [label, ...body.split(/\n+/).map((line, i): Block => ({
+    type: 'paragraph',
+    runs: b.revisedRuns(line.trim(), reference, refBody === undefined ? undefined : (refBody.split(/\n+/)[i] ?? '').trim()),
+  }))];
 }
 
 /** Blocs d'une instance (vide → []). */

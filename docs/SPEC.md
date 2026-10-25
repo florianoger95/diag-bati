@@ -462,6 +462,16 @@ Ordre de grandeur : 120 photos ≈ 60 Mo par dossier.
 - **Annexe** : aucun titre n'est ajouté, puisque la première page de l'annexe importée porte déjà « ANNEXE – LEXIQUE ». L'app ajoute le logo et la pagination sur ces pages.
 - **Renvoi des photos** : « (État des tuiles) » sous la légende. La flèche « → » est absente de la police de repli.
 
+**Mises à jour et sauvegarde (choix de réalisation, Lot 4)** :
+- Chaque réponse d'une mise à jour garde deux états de référence :
+  - `inherited`, l'état de la visite précédente, pour l'annulation et le mode `latest` ;
+  - `baseline`, l'état de fin de visite initiale, pour le mode `all`.
+- Le violet du rapport vient d'un diff mot à mot avec l'état de référence. Le texte supprimé n'apparaît pas.
+- Archive `.diag.zip` (fflate) : `manifest.json` (format, version), `data.json` (dossier, visites, réponses, photos) et les binaires tels quels, sans recompression.
+  - Restaurer un dossier déjà présent : « remplacer » ou « copie », avec de nouveaux identifiants et une référence suffixée « (copie) ».
+- Exporter une visite en cours la marque sauvegardée sans la figer ; une visite clôturée passe « exportée ».
+- « Prête hors ligne ✓ » s'affiche quand les fichiers essentiels sont présents dans le cache du service worker. Celui-ci les télécharge en tâche de fond après la première ouverture.
+
 **Binaires en navigation privée** *(constaté au Lot 2)* : WebKit refuse d'enregistrer des `Blob` dans IndexedDB dans une session éphémère (navigation privée de Safari, contextes de test). L'app le détecte une fois par session ; dans ce cas, elle stocke le même binaire en `ArrayBuffer` (jamais en base64) et le relit en `Blob`. En usage normal, les images restent des `Blob`.
 
 **Service worker / GitHub Pages** :

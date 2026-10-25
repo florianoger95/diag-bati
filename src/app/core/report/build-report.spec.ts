@@ -192,6 +192,66 @@ describe('buildReport', () => {
     expect(noAnnex.blocks.some((b) => b.type === 'annex')).toBe(false);
   });
 
+  describe('visite de mise à jour', () => {
+    const rev0: Visit = { ...visit, id: 'v0', revision: 0, fields: { 'date-visite': '2026-09-17T13:30' }, status: 'closed' };
+    const rev1: Visit = { ...visit, id: 'v1b', revision: 1, reason: 'suite à curage', fields: { 'date-visite': '2026-10-23T09:00' }, status: 'closed' };
+    const rev2: Visit = { ...visit, id: 'v2', revision: 2, reason: 'suite aux sondages', fields: { 'date-visite': '2026-11-05T10:00' } };
+    const temoin = (h: number, v: number) => [{ id: 't1', point: 'Témoin 1', values: [h, v] }];
+    const current: Answer[] = [
+      answer('bat-a', 'couv-etat', {
+        visitId: 'v2', value: 'mauvais', observation: 'Tuiles poreuses. Lattis pourri après curage.', changedInRevision: 2,
+        inherited: { value: 'mauvais', observation: 'Tuiles poreuses.', changedInRevision: 1 },
+        baseline: { value: 'moyen', observation: 'Tuiles poreuses.' },
+      }),
+      answer('bat-a', 'couv-type', {
+        visitId: 'v2', value: '2-pans', changedInRevision: 1, inherited: { value: '2-pans', observation: '', changedInRevision: 1 },
+      }),
+      answer('bat-a', 'preconisations', {
+        visitId: 'v2', changedInRevision: 2,
+        value: [{ id: 'a1', text: 'Démousser', urgency: 'medium' }, { id: 'a2', text: 'Reprendre le lattis', urgency: 'short' }],
+        inherited: { value: [{ id: 'a1', text: 'Démousser', urgency: 'medium' }], observation: '', changedInRevision: 0 },
+        baseline: { value: [{ id: 'a1', text: 'Démousser', urgency: 'medium' }], observation: '' },
+      }),
+      answer('nord', 'fac-temoins', { visitId: 'v2', value: temoin(2, -1), changedInRevision: 1 }),
+    ];
+    const history = [
+      { visit: rev0, answers: [answer('nord', 'fac-temoins', { visitId: 'v0', value: temoin(0, -3) })] },
+      { visit: rev1, answers: [answer('nord', 'fac-temoins', { visitId: 'v1b', value: temoin(2, -1), changedInRevision: 1 })] },
+    ];
+    const build = (mode: 'latest' | 'all') => buildReport(input({
+      visit: rev2, answers: current, photos: [], history, config: { ...config, revisionHighlight: mode },
+    }));
+    const para = (m: ReturnType<typeof build>, start: string) =>
+      m.blocks.find((b) => plain(b).startsWith(start)) as Extract<Block, { type: 'paragraph' }>;
+    const violet = (p: Extract<Block, { type: 'paragraph' }>) => p.runs.filter((r) => r.revised).map((r) => r.text).join('|');
+
+    it('« dernière mise à jour » : seul le texte ajouté dans cette révision est en violet', () => {
+      const m = build('latest');
+      expect(violet(para(m, '- État des tuiles'))).toBe(' Lattis pourri après curage.');
+      expect(violet(para(m, '- Types de couverture'))).toBe('');
+      expect(violet(para(m, 'Reprendre le lattis'))).toBe('Reprendre le lattis (court terme)');
+      expect(violet(para(m, 'Démousser'))).toBe('');
+    });
+
+    it('« toutes les mises à jour » : comparaison avec la visite initiale', () => {
+      const m = build('all');
+      expect(violet(para(m, '- État des tuiles'))).toBe('Mauvais| Lattis pourri après curage.');
+      expect(violet(para(m, '- Types de couverture'))).toBe('2 pans');
+    });
+
+    it('page de garde : dates des mises à jour, en violet', () => {
+      const m = build('all');
+      const dates = para(m, '17/09/2026');
+      expect(plain(dates)).toBe('17/09/2026 – Mise à jour suite à curage le 23/10/2026 – Mise à jour suite aux sondages le 05/11/2026');
+      expect(violet(dates)).toBe(' – Mise à jour suite à curage le 23/10/2026| – Mise à jour suite aux sondages le 05/11/2026');
+    });
+
+    it('témoins de fissure : historique daté des relevés', () => {
+      const line = plain(para(build('latest'), '- Témoins de fissure'));
+      expect(line).toBe('- Témoins de fissure : Témoin 1 : H 0 mm ; V -3 mm (17/09/2026), puis H 2 mm ; V -1 mm (23/10/2026)');
+    });
+  });
+
   it('liste les photos à préparer et nomme le fichier', () => {
     expect(model.photoIds.sort()).toEqual(['ph1', 'ph2', 'plan1']);
     expect(model.fileBaseName).toBe('2026-10-001 PROJET MAISON DES TILLEULS');

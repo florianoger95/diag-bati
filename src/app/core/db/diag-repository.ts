@@ -275,10 +275,73 @@ export class DiagRepository {
     );
   }
 
-  /** Marque la visite comme exportée (Lot 4 : appelé après une sauvegarde réussie). */
+  /** Note la date de sauvegarde ; une visite clôturée passe « exportée », une visite en cours reste modifiable. */
   async markExported(visitId: string): Promise<void> {
+    const visit = await this.db.visits.get(visitId);
+    if (!visit) throw new NotFoundError('Visite');
     const now = this.deps.now();
-    await this.db.visits.update(visitId, { status: 'exported', exportedAt: now, updatedAt: now });
+    await this.db.visits.update(visitId, { status: visit.status === 'draft' ? 'draft' : 'exported', exportedAt: now, updatedAt: now });
+  }
+
+  /**
+   * Visite de mise à jour (après curage, sondages…) : reprend fiches, réponses et conclusion de la
+   * dernière visite, qui devient définitivement en lecture seule. Les photos sont partagées.
+   */
+  createRevision(projectId: string, reason: string): Promise<Visit> {
+    const { db } = this;
+    return db.transaction('rw', [db.visits, db.answers, db.projects], async () => {
+      const visits = await db.visits.where('projectId').equals(projectId).sortBy('revision');
+      const latest = visits.at(-1);
+      if (!latest) throw new NotFoundError('Visite');
+      if (latest.status === 'draft') throw new Error('Clôturez la dernière visite avant de créer une mise à jour.');
+      const now = this.deps.now();
+      const visit: Visit = {
+        id: this.deps.uuid(),
+        projectId,
+        revision: latest.revision + 1,
+        reason: reason.trim(),
+        fields: {},
+        instances: structuredClone(latest.instances),
+        conclusion: latest.conclusion,
+        status: 'draft',
+        cursor: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      const state = (a: Answer) => ({ value: structuredClone(a.value), ...(a.other !== undefined ? { other: a.other } : {}), observation: a.observation });
+      const answers = (await db.answers.where('visitId').equals(latest.id).toArray()).map((a): Answer => {
+        const copy: Answer = {
+          ...structuredClone(a), visitId: visit.id,
+          inherited: { ...state(a), changedInRevision: a.changedInRevision },
+        };
+        const baseline = latest.revision === 0 ? state(a) : a.baseline;
+        if (baseline) copy.baseline = baseline;
+        else delete copy.baseline;
+        return copy;
+      });
+      await db.visits.add(visit);
+      await db.answers.bulkAdd(answers);
+      await db.projects.update(projectId, { updatedAt: now });
+      return visit;
+    });
+  }
+
+  /** Annule les modifications d'une réponse dans la mise à jour (retour à l'état repris). */
+  revertAnswer(visitId: string, instanceId: string, itemId: string): Promise<Answer | undefined> {
+    return this.mutateVisit(visitId, async () => {
+      const answer = await this.db.answers.get([visitId, instanceId, itemId]);
+      if (!answer) return undefined;
+      if (!answer.inherited) {
+        // réponse apparue dans cette mise à jour : on la retire
+        await this.db.answers.delete([visitId, instanceId, itemId]);
+        return undefined;
+      }
+      const { changedInRevision, ...state } = answer.inherited;
+      const reverted: Answer = { ...answer, ...structuredClone(state), changedInRevision, updatedAt: this.deps.now() };
+      if (state.other === undefined) delete reverted.other;
+      await this.db.answers.put(reverted);
+      return reverted;
+    });
   }
 
   // ---- instances ------------------------------------------------------------
@@ -427,6 +490,11 @@ export class DiagRepository {
       this.binaryMode = 'buffer';
     }
     return this.binaryMode;
+  }
+
+  /** Binaire prêt à être stocké (Blob, ou ArrayBuffer en navigation privée). À appeler hors transaction. */
+  toStorable(blob: Blob): Promise<Blob | StoredBinary> {
+    return this.storable(blob);
   }
 
   private async storable(blob: Blob): Promise<Blob | StoredBinary> {

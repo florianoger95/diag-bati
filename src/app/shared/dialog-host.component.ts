@@ -16,6 +16,15 @@ import { DialogService } from '../core/services/dialog.service';
             <button class="btn btn-primary" type="button" [class.btn-danger]="request.danger"
                     (click)="dialogs.close(true)">{{ request.confirmLabel }}</button>
           </div>
+        } @else if (request.kind === 'choice') {
+          <p class="message">{{ request.message }}</p>
+          <div class="row actions">
+            <button class="btn" type="button" (click)="dialogs.close(null)">Annuler</button>
+            @for (o of request.options; track o.id) {
+              <button class="btn" type="button" [class.btn-primary]="o.primary" [class.btn-danger]="o.danger"
+                      (click)="dialogs.close(o.id)">{{ o.label }}</button>
+            }
+          </div>
         } @else {
           <form (submit)="$event.preventDefault(); dialogs.close(value())">
             @if (request.suggestions.length) {

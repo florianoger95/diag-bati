@@ -88,9 +88,12 @@
     <span class="spacer"></span>
     @if (store.visit()?.status === 'draft') {
       <button class="btn btn-primary" type="button" (click)="close()">Clôturer la visite</button>
+    } @else if (store.newerVisitId()) {
+      <span class="hint">Visite antérieure, en lecture seule.</span>
     } @else {
       <span class="hint">Visite clôturée.</span>
       <button class="btn" type="button" (click)="reopen()">Rouvrir la visite</button>
+      <a class="btn btn-primary" [routerLink]="['/dossiers', store.visit()!.projectId]">Mise à jour ou sauvegarde →</a>
     }
   </div>
 </div>

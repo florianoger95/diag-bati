@@ -64,6 +64,7 @@ export class ReportPage {
         lexicon: this.cabinet.lexicon(),
         firm: this.cabinet.firm(),
         logo: this.cabinet.logo(), font: this.cabinet.font(), annex: this.cabinet.annex(),
+        history: await this.store.history(),
         onProgress: (label, done, total) => this.step.set({ label, done, total }),
       });
       const result: Result = {

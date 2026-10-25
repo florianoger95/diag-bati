@@ -39,6 +39,7 @@ export interface FieldChange {
   styleUrl: './item-field.component.scss',
   host: {
     '[class.defect]': '!!state()?.defect',
+    '[class.revised]': 'revised()',
     '[class.heading]': "item().type === 'heading'",
     '[attr.id]': "'item-' + item().id",
   },
@@ -54,7 +55,12 @@ export class ItemFieldComponent {
   readonly withPhotos = input(false);
   /** Lexique actif (annexe importée) : termes détectés affichés sous l'observation. */
   readonly lexicon = input<CompiledLexicon | null>(null);
+  /** Mise à jour : réponse modifiée dans cette visite, et sa version reprise (null si elle est nouvelle). */
+  readonly revised = input(false);
+  readonly original = input<string | null>(null);
   readonly changed = output<FieldChange>();
+  readonly revert = output<void>();
+  readonly showOriginal = signal(false);
   readonly media = output<MediaRequest>();
   readonly openPhoto = output<string>();
 

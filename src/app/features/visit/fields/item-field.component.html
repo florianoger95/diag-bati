@@ -10,6 +10,9 @@
     @if (state()?.defect; as d) {
       <span class="badge badge-danger">Désordre · {{ urgencyLabels[d.urgency] }}</span>
     }
+    @if (revised()) {
+      <span class="badge badge-revised">{{ original() === null ? 'Nouveau' : 'Modifié' }} dans cette mise à jour</span>
+    }
     <span class="spacer"></span>
     @if (it.helpText) {
       <button class="btn btn-ghost btn-small help-btn" type="button" [attr.aria-expanded]="showHelp()"
@@ -110,6 +113,22 @@
           </button>
         }
       </div>
+    }
+  }
+
+  @if (revised() && !readonly()) {
+    <div class="revision">
+      @if (original() !== null) {
+        <button class="btn btn-small btn-ghost" type="button" (click)="showOriginal.set(!showOriginal())" [attr.aria-expanded]="showOriginal()">
+          {{ showOriginal() ? 'Masquer l’original' : 'Voir l’original' }}
+        </button>
+      }
+      <button class="btn btn-small" type="button" (click)="revert.emit()">
+        {{ original() === null ? 'Effacer cette réponse' : 'Annuler la modification' }}
+      </button>
+    </div>
+    @if (showOriginal() && original() !== null) {
+      <p class="original"><span class="hint">Avant cette mise à jour :</span> {{ original() || '(vide)' }}</p>
     }
   }
 

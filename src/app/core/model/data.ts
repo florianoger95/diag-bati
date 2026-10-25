@@ -96,7 +96,10 @@ export interface Answer {
   observation: string;
   defect?: { urgency: Urgency };
   changedInRevision: number;
-  inherited?: { value: AnswerValue; other?: string; observation: string };
+  /** État repris de la visite précédente (diff « dernière mise à jour », annulation). */
+  inherited?: { value: AnswerValue; other?: string; observation: string; changedInRevision: number };
+  /** État à la fin de la visite initiale (diff « toutes les mises à jour »). */
+  baseline?: { value: AnswerValue; other?: string; observation: string };
   updatedAt: number;
 }
 

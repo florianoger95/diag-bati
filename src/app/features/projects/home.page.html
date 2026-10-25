@@ -2,6 +2,10 @@
   <div class="row">
     <h1>Dossiers</h1>
     <span class="spacer"></span>
+    <label class="btn">
+      ⇩ Restaurer une sauvegarde
+      <input type="file" accept=".zip,application/zip,application/x-zip-compressed" hidden (change)="restore($event)" data-testid="import-backup" />
+    </label>
     <a class="btn btn-primary" routerLink="/dossiers/nouveau">+ Nouveau dossier</a>
   </div>
 
@@ -17,7 +21,8 @@
             Safari peut effacer les données d'une app web quand l'iPad manque de place, ou si l'app
             n'est pas ouverte pendant plusieurs semaines. Une PWA installée sur l'écran d'accueil et utilisée
             régulièrement est protégée, mais pas de façon garantie. Exportez chaque dossier dès la visite
-            terminée (sauvegarde disponible au Lot 4).
+            terminée (bouton « Exporter ») vers iCloud Drive ou votre ordinateur : la sauvegarde se restaure
+            sur n'importe quel iPad avec « Restaurer une sauvegarde ».
           </span>
         }
       </div>
@@ -70,6 +75,9 @@
           </a>
           <div class="actions">
             <a class="btn btn-small" [routerLink]="['/dossiers', s.project.id]">Dossier</a>
+            <button class="btn btn-small" type="button" [disabled]="exporting() === s.project.id" (click)="export(s)">
+              {{ exporting() === s.project.id ? 'Export…' : '⇪ Exporter' }}
+            </button>
             <button class="btn btn-small btn-danger" type="button" (click)="remove(s)">Supprimer</button>
           </div>
         </li>
@@ -78,6 +86,13 @@
   }
 
   <footer class="storage hint">
+    @if (updates.offlineReady() === true) {
+      <span class="badge badge-ok" data-testid="offline-ready">Prête hors ligne ✓</span>
+    } @else if (updates.offlineReady() === null) {
+      <span class="badge">Téléchargement pour le hors-ligne… gardez la connexion</span>
+    } @else {
+      <span class="badge badge-warn">Hors-ligne incomplet : rouvrez l'app avec une connexion</span>
+    }
     @if (storageText(); as text) { <span>Stockage : {{ text }}.</span> }
     @if (storage.persisted() === true) {
       <span class="badge badge-ok">Stockage persistant accordé</span>

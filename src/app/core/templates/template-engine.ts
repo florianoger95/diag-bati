@@ -48,6 +48,15 @@ export function isPhotoVisible(photo: { addedInRevision: number; removedInRevisi
   return photo.addedInRevision <= revision && (photo.removedInRevision === undefined || photo.removedInRevision > revision);
 }
 
+/**
+ * Réponse modifiée par une mise à jour : dans la révision courante (« latest »),
+ * ou depuis la visite initiale (« all »).
+ */
+export function isRevised(answer: Pick<Answer, 'changedInRevision'>, revision: number, mode: 'latest' | 'all'): boolean {
+  if (revision === 0) return false;
+  return mode === 'latest' ? answer.changedInRevision === revision : answer.changedInRevision > 0;
+}
+
 /** Item qui compte dans la progression (les titres et les photos n'en font pas partie). */
 export function isCountable(item: ResolvedItem): boolean {
   return item.type !== 'heading' && item.type !== 'photo';

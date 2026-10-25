@@ -202,6 +202,7 @@ describe('liste et suppression', () => {
   it('indique si une visite doit être exportée', async () => {
     const { visit } = await newProject();
     expect(DiagRepository.needsExport((await repo.getVisit(visit.id))!)).toBe(true);
+    await repo.closeVisit(visit.id);
     await repo.markExported(visit.id);
     const exported = (await repo.getVisit(visit.id))!;
     expect(exported.status).toBe('exported');

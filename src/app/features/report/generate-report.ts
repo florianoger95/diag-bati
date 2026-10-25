@@ -22,6 +22,8 @@ export interface GenerateContext {
   logo?: StoredAsset;
   font?: StoredAsset;
   annex?: StoredAsset;
+  /** Visites précédentes (rapport d'une mise à jour). */
+  history?: { visit: Visit; answers: Answer[] }[];
   onProgress?(label: string, done: number, total: number): void;
 }
 
@@ -61,6 +63,7 @@ export async function generateReport(format: 'pdf' | 'docx', ctx: GenerateContex
   const model = buildReport({
     project: ctx.project, visit: ctx.visit, template: ctx.template, answers: ctx.answers, photos: ctx.photos,
     config: ctx.config, lexicon: ctx.lexicon ?? undefined, hasAnnex: !!ctx.annex, firm: ctx.firm, reportDate: today(),
+    history: ctx.history,
   });
 
   // dimensions et binaires des images utilisées (les Blob ne sont lus qu'au moment du rendu)

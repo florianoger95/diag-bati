@@ -59,6 +59,8 @@ export function sampleTemplate(): ChecklistTemplate {
           { id: 'fac-humidite', label: 'Humidité du mur', type: 'measures', required: false,
             measures: { points: ['0 m', '1 m', '2 m'], columns: [{ label: 'Humidité', unit: '%' }] } },
           { id: 'fac-date', label: 'Date du relevé', type: 'date', required: false },
+          { id: 'fac-temoins', label: 'Témoins de fissure', type: 'measures', history: true, required: false,
+            measures: { columns: [{ label: 'H', unit: 'mm' }, { label: 'V', unit: 'mm' }] } },
         ],
       },
     ],

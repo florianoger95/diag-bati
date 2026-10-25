@@ -1,6 +1,7 @@
-import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, Injector, input, untracked } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, Injector, input, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ResolvedItem } from '../../core/model/template';
+import { formatAnswer } from '../../core/report/build-report';
 import { CabinetService } from '../../core/services/cabinet.service';
 import { DialogService } from '../../core/services/dialog.service';
 import { MediaRequest } from '../../shared/photo-strip.component';
@@ -25,6 +26,7 @@ export class InstancePage {
   private readonly cabinet = inject(CabinetService);
   /** Lexique actif seulement si l'annexe est importée (sinon pas d'astérisques au rapport). */
   readonly lexicon = computed(() => (this.cabinet.annex() ? this.cabinet.lexicon() : null));
+  readonly onlyChanged = signal(false);
   readonly instance = computed(() => this.store.instance(this.instanceId()));
   readonly section = computed(() => {
     const i = this.instance();
@@ -76,6 +78,13 @@ export class InstancePage {
 
   state(item: ResolvedItem) {
     return this.store.answer(this.instanceId(), item.id);
+  }
+
+  /** Version reprise de la visite précédente, en clair (null : réponse nouvelle). */
+  original(item: ResolvedItem): string | null {
+    const inherited = this.state(item)?.inherited;
+    if (!inherited) return null;
+    return [formatAnswer(item, inherited), inherited.observation.trim()].filter(Boolean).join(' — ');
   }
 
   onChange(item: ResolvedItem, change: FieldChange): void {

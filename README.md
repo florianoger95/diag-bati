@@ -8,8 +8,41 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
 - **Lot 2** : photos sur chaque item, plans PDF, croquis, annotation au doigt, légende, conclusion.
 
 - **Lot 3** : rapports PDF et Word, lexique avec astérisques automatiques, réglages du cabinet.
+- **Lot 4** : mises à jour successives, sauvegarde et restauration, modèles importés, indicateur « Prête hors ligne ».
 
-À venir : mises à jour successives et sauvegarde au Lot 4.
+## Mises à jour (après curage, sondages…)
+
+1. Clôturer la visite (« Synthèse et clôture »), puis, dans la fiche du dossier, choisir **+ Nouvelle mise à jour** et indiquer le motif.
+2. La mise à jour reprend toutes les fiches, réponses, photos et la conclusion. La visite précédente passe en lecture seule.
+3. Chaque item modifié porte un repère violet, avec deux boutons : « Voir l'original » et « Annuler la modification ».
+   Le filtre « Modifiés seulement » n'affiche que les items changés.
+4. Dans le rapport :
+   - seuls les mots ajoutés ou changés passent en violet ;
+   - la page de garde indique « … – Mise à jour suite à curage le … » ;
+   - les témoins de fissure affichent l'historique de leurs relevés datés.
+
+   `revisionHighlight` (dans `report.config.json`) vaut `all` (tout ce qui a changé depuis la visite initiale) ou `latest` (seulement la dernière mise à jour).
+
+## Sauvegarde et restauration
+
+- **⇪ Exporter**, sur l'accueil ou dans la fiche du dossier, produit une archive `.diag.zip`.
+  - Elle contient toutes les visites, réponses, photos, plans et annotations.
+  - Sur l'iPad, elle s'enregistre via la feuille de partage : iCloud Drive, AirDrop, Mail.
+  - Le dossier passe alors en « exporté » et le bandeau rouge disparaît.
+- **⇩ Restaurer une sauvegarde** sur l'accueil. Si le dossier existe déjà, l'app propose de le remplacer ou d'en importer une copie.
+- **Réglages → Sauvegarde des réglages** : cabinet, logo, police et annexe, pour préparer un autre iPad.
+- L'archive se lit sur un ordinateur : `data.json` et les images ou PDF tels quels.
+
+## Modèles importés
+
+Réglages → Modèles de fiches → **Importer un modèle (.json)**.
+- Le modèle est vérifié, puis remplace le modèle livré de même `templateId`.
+- On peut ainsi ajuster une fiche sans redéployer l'app.
+- Les dossiers existants gardent leur version.
+
+## Avant de partir sur le terrain
+
+Ouvrir l'app connecté jusqu'à voir **« Prête hors ligne ✓ »** en bas de l'accueil : tous les fichiers sont alors en cache.
 
 ## Rapports PDF et Word
 
@@ -56,7 +89,7 @@ L'app ne se recharge jamais d'elle-même pendant une saisie.
   pendant plusieurs semaines. Une app installée sur l'écran d'accueil et utilisée régulièrement est protégée,
   et l'app demande le **stockage persistant** au premier lancement (statut affiché en bas de l'accueil).
   Ce n'est pourtant pas une garantie absolue : **tant qu'un dossier n'est pas exporté, un bandeau rouge
-  le rappelle**. L'export et la restauration arrivent au Lot 4.
+  le rappelle**. Exportez chaque dossier en fin de visite (voir « Sauvegarde et restauration »).
 - Supprimer l'app de l'écran d'accueil, ou effacer les données de Safari, supprime les dossiers.
 
 ## Modifier les fiches (rules-as-data)
