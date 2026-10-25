@@ -1,13 +1,41 @@
+import { Shape } from '../annotation/shapes';
 import {
   Answer,
   AnswerPatch,
+  LegendEntry,
+  Photo,
   Project,
   SectionInstance,
+  StoredBlob,
   Visit,
   VisitCursor,
 } from '../model/data';
 import { ChecklistTemplate } from '../model/template';
+import { isPhotoVisible } from '../templates/template-engine';
 import { DiagDb } from './diag-db';
+
+export interface NewPhoto {
+  instanceId: string | null;
+  itemId: string | null;
+  kind: Photo['kind'];
+  image: Blob;
+  thumb: Blob;
+  vector?: Blob;
+  width: number;
+  height: number;
+  caption?: string;
+}
+
+/** Binaire stocké sans Blob (repli WebKit en navigation privée). */
+export interface StoredBinary {
+  data: ArrayBuffer;
+  type: string;
+}
+
+export interface PhotoPatch {
+  caption?: string;
+  annotations?: Shape[];
+}
 
 export interface RepositoryDeps {
   now: () => number;
@@ -42,6 +70,9 @@ const pad = (n: number, size: number) => String(n).padStart(size, '0');
 
 /** Seul point d'écriture dans la base : les composants n'accèdent jamais à Dexie directement. */
 export class DiagRepository {
+  /** Mode de stockage des binaires, détecté au premier enregistrement (forçable pour les tests). */
+  binaryMode?: 'blob' | 'buffer';
+
   constructor(
     readonly db: DiagDb,
     private readonly deps: RepositoryDeps = defaultDeps,
@@ -175,7 +206,7 @@ export class DiagRepository {
     options: { allowReadOnly?: boolean } = {},
   ): Promise<T> {
     const { db } = this;
-    return db.transaction('rw', [db.visits, db.projects, db.answers], async () => {
+    return db.transaction('rw', [db.visits, db.projects, db.answers, db.photos, db.blobs], async () => {
       const visit = await db.visits.get(visitId);
       if (!visit) throw new NotFoundError('Visite');
       if (!options.allowReadOnly && visit.status !== 'draft') throw new ReadOnlyVisitError();
@@ -341,6 +372,129 @@ export class DiagRepository {
         }
       }),
     );
+  }
+
+  // ---- photos, plans, croquis -----------------------------------------------
+
+  /** Photos visibles dans la révision de la visite, par numéro. */
+  async getVisiblePhotos(visitId: string): Promise<Photo[]> {
+    const visit = await this.db.visits.get(visitId);
+    if (!visit) return [];
+    const photos = await this.db.photos.where('projectId').equals(visit.projectId).toArray();
+    return photos.filter((p) => isPhotoVisible(p, visit.revision)).sort((a, b) => a.number - b.number || a.order - b.order);
+  }
+
+  async getBlob(blobId: string): Promise<StoredBlob | undefined> {
+    const stored = await this.db.blobs.get(blobId);
+    if (!stored) return undefined;
+    const read = (v: Blob | StoredBinary) => (v instanceof Blob ? v : new Blob([v.data], { type: v.type }));
+    return {
+      ...stored,
+      image: read(stored.image),
+      thumb: read(stored.thumb),
+      ...(stored.vector ? { vector: read(stored.vector) } : {}),
+    };
+  }
+
+  /**
+   * WebKit refuse les Blob dans IndexedDB en navigation privée : on le détecte une fois,
+   * et on stocke alors le même binaire sous forme d'ArrayBuffer (jamais en base64).
+   */
+  private async detectBinaryMode(): Promise<'blob' | 'buffer'> {
+    if (this.binaryMode) return this.binaryMode;
+    try {
+      await this.db.settings.put({ key: '__blob-probe', value: new Blob(['ok']) });
+      await this.db.settings.delete('__blob-probe');
+      this.binaryMode = 'blob';
+    } catch {
+      this.binaryMode = 'buffer';
+    }
+    return this.binaryMode;
+  }
+
+  private async storable(blob: Blob): Promise<Blob | StoredBinary> {
+    return (await this.detectBinaryMode()) === 'blob' ? blob : { data: await blob.arrayBuffer(), type: blob.type };
+  }
+
+  async addPhoto(visitId: string, input: NewPhoto): Promise<Photo> {
+    // conversions hors transaction (une transaction IndexedDB ne survit pas à une attente externe)
+    const [image, thumb, vector] = await Promise.all([
+      this.storable(input.image),
+      this.storable(input.thumb),
+      input.vector ? this.storable(input.vector) : Promise.resolve(undefined),
+    ]);
+    return this.mutateVisit(visitId, async (visit) => {
+      const { db } = this;
+      const all = await db.photos.where('projectId').equals(visit.projectId).toArray();
+      const visible = all.filter((p) => isPhotoVisible(p, visit.revision));
+      const now = this.deps.now();
+      const blob = {
+        id: this.deps.uuid(), image, thumb, width: input.width, height: input.height,
+        byteSize: input.image.size + input.thumb.size + (input.vector?.size ?? 0),
+        ...(vector ? { vector } : {}),
+      } as StoredBlob;
+      const photo: Photo = {
+        id: this.deps.uuid(),
+        projectId: visit.projectId,
+        blobId: blob.id,
+        instanceId: input.instanceId,
+        itemId: input.itemId,
+        kind: input.kind,
+        number: all.reduce((max, p) => Math.max(max, p.number), 0) + 1,
+        caption: input.caption ?? '',
+        order: visible.filter((p) => p.instanceId === input.instanceId && p.itemId === input.itemId).length,
+        annotations: [],
+        addedInRevision: visit.revision,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await db.blobs.add(blob);
+      await db.photos.add(photo);
+      return photo;
+    });
+  }
+
+  /**
+   * Modifie légende ou annotations. Une photo d'une révision antérieure n'est jamais modifiée :
+   * elle est masquée à partir de cette révision et remplacée par une copie (même binaire, même numéro).
+   */
+  updatePhoto(visitId: string, photoId: string, patch: PhotoPatch): Promise<Photo> {
+    return this.mutateVisit(visitId, async (visit) => {
+      const photo = await this.db.photos.get(photoId);
+      if (!photo || photo.projectId !== visit.projectId) throw new NotFoundError('Photo');
+      const now = this.deps.now();
+      if (photo.addedInRevision === visit.revision) {
+        const updated: Photo = { ...photo, ...patch, updatedAt: now };
+        await this.db.photos.put(updated);
+        return updated;
+      }
+      await this.db.photos.update(photo.id, { removedInRevision: visit.revision });
+      const copy: Photo = {
+        ...structuredClone(photo), ...patch, id: this.deps.uuid(),
+        addedInRevision: visit.revision, createdAt: now, updatedAt: now,
+      };
+      delete copy.removedInRevision;
+      await this.db.photos.add(copy);
+      return copy;
+    });
+  }
+
+  deletePhoto(visitId: string, photoId: string): Promise<void> {
+    return this.mutateVisit(visitId, async (visit) => {
+      const { db } = this;
+      const photo = await db.photos.get(photoId);
+      if (!photo || photo.projectId !== visit.projectId) throw new NotFoundError('Photo');
+      if (photo.addedInRevision === visit.revision) {
+        await db.photos.delete(photo.id);
+        if ((await db.photos.where('blobId').equals(photo.blobId).count()) === 0) await db.blobs.delete(photo.blobId);
+      } else {
+        await db.photos.update(photo.id, { removedInRevision: visit.revision });
+      }
+    });
+  }
+
+  async setLegend(projectId: string, legend: LegendEntry[]): Promise<void> {
+    await this.db.projects.update(projectId, { legend, updatedAt: this.deps.now() });
   }
 
   // ---- réponses -------------------------------------------------------------

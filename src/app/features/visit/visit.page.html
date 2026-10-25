@@ -13,6 +13,9 @@
     </a>
     <span class="spacer"></span>
     <span class="save" role="status" aria-live="polite">
+      @if (store.mediaBusy() > 0) {
+        <span class="badge badge-warn">Traitement de {{ store.mediaBusy() }} image{{ store.mediaBusy() > 1 ? 's' : '' }}…</span>
+      }
       @if (store.saveError()) {
         <span class="badge badge-danger">Non enregistré</span>
       } @else if (store.pendingWrites() > 0) {
@@ -69,12 +72,22 @@
           }
         }
       }
+      <div class="group">
+        <a class="nav-link" [routerLink]="store.link('plans')" routerLinkActive="active">Plans et croquis</a>
+        <a class="nav-link" [routerLink]="store.link('photos')" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+          <span>Photos</span><span class="count">{{ store.photos().length }}</span>
+        </a>
+        <a class="nav-link" [routerLink]="store.link('conclusion')" routerLinkActive="active">Conclusion</a>
+      </div>
       <a class="nav-link synth" [routerLink]="store.link('synthese')" routerLinkActive="active">Synthèse et clôture</a>
     </nav>
     <section class="content">
       <router-outlet />
     </section>
   </div>
+  @if (store.pdfChoice(); as choice) {
+    <app-pdf-page-picker [choice]="choice" />
+  }
 } @else {
   <p class="page hint">Chargement…</p>
 }

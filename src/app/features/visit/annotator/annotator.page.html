@@ -1,0 +1,114 @@
+@if (photo(); as p) {
+  <div class="annotator" role="dialog" aria-modal="true" [attr.aria-label]="'Annotation ' + p.number">
+    <header class="bar">
+      <button class="btn btn-small" type="button" (click)="close()">← Retour</button>
+      <div class="title">
+        <strong>{{ p.kind === 'photo' ? 'Photo' : p.kind === 'plan' ? 'Plan' : 'Croquis' }} {{ p.number }}</strong>
+        <span class="where">{{ location() }}</span>
+      </div>
+      <input class="input caption" type="text" placeholder="Légende de l'image…" [value]="caption()"
+             [readOnly]="readonly()" (input)="onCaption($any($event.target).value)" aria-label="Légende de l'image" />
+      @if (!readonly()) {
+        <button class="btn btn-small btn-danger" type="button" (click)="remove()">Supprimer</button>
+      }
+    </header>
+
+    <div #stage class="stage" (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)"
+         (pointerup)="onPointerUp($event)" (pointercancel)="onPointerUp($event)" (lostpointercapture)="onPointerUp($event)">
+      <div class="frame" [style.width.px]="frame().w" [style.height.px]="frame().h" [style.transform]="frameTransform()">
+        @if (imageUrl(); as url) { <img [src]="url" alt="" draggable="false" /> }
+        <canvas #canvas [style.width.px]="frame().w" [style.height.px]="frame().h"
+                [attr.aria-label]="'Annotations : ' + shapes().length"></canvas>
+      </div>
+      <div class="zoom">
+        <button class="btn btn-small" type="button" (click)="zoom(1.5)" aria-label="Zoomer">＋</button>
+        <button class="btn btn-small" type="button" (click)="zoom(1 / 1.5)" aria-label="Dézoomer">－</button>
+        <button class="btn btn-small" type="button" (click)="fit()">Ajuster</button>
+      </div>
+    </div>
+
+    @if (usedLegend().length) {
+      <div class="legend" aria-label="Légende">
+        @for (l of usedLegend(); track l.color) {
+          <span class="legend-entry"><span class="swatch" [style.background]="l.color"></span>{{ l.label }}</span>
+        }
+      </div>
+    }
+
+    @if (!readonly()) {
+      <footer class="toolbar">
+        <div class="group" role="toolbar" aria-label="Outils">
+          @for (t of tools; track t.id) {
+            <button class="tool" type="button" [attr.aria-pressed]="tool() === t.id" [attr.aria-label]="t.label"
+                    [title]="t.label" (click)="setTool(t.id)">{{ t.icon }}</button>
+          }
+        </div>
+
+        <div class="group" role="group" aria-label="Couleur">
+          @for (c of palette(); track c) {
+            <button class="swatch-btn" type="button" [style.background]="c" [attr.aria-pressed]="color() === c"
+                    [attr.aria-label]="legendLabel()(c) ?? 'Couleur ' + c" [title]="legendLabel()(c) ?? c"
+                    (click)="pickColor(c)"></button>
+          }
+          <label class="custom" title="Autre couleur">
+            <input type="color" [value]="color()" (change)="pickColor($any($event.target).value)" aria-label="Choisir une autre couleur" />
+          </label>
+          <button class="btn btn-small btn-ghost" type="button" (click)="renameColor()">
+            {{ legendLabel()(color()) ?? 'Nommer la couleur' }}
+          </button>
+        </div>
+
+        <div class="group">
+          @switch (tool()) {
+            @case ('text') {
+              @for (s of textSizes; track s[0]) {
+                <button class="choice" type="button" [attr.aria-pressed]="textSize() === s[1]" (click)="textSize.set(s[1])">{{ s[0] }}</button>
+              }
+            }
+            @case ('badge') {
+              <select class="input badge-select" [value]="badgeTarget()" (change)="badgeTarget.set($any($event.target).value)"
+                      aria-label="Numéro de la pastille">
+                <option value="auto">N° suivant ({{ nextBadge() }})</option>
+                @for (o of otherPhotos(); track o.id) {
+                  <option [value]="o.id">Photo {{ o.number }}{{ o.caption ? ' — ' + o.caption : '' }}</option>
+                }
+              </select>
+              @for (s of textSizes; track s[0]) {
+                <button class="choice" type="button" [attr.aria-pressed]="textSize() === s[1]" (click)="textSize.set(s[1])">{{ s[0] }}</button>
+              }
+            }
+            @case ('zone') {
+              <button class="choice" type="button" [attr.aria-pressed]="zoneFill() === 'hatch'" (click)="zoneFill.set('hatch')">Hachurée</button>
+              <button class="choice" type="button" [attr.aria-pressed]="zoneFill() === 'tint'" (click)="zoneFill.set('tint')">Teintée</button>
+              @if (zonePoints().length) {
+                <button class="btn btn-small btn-primary" type="button" [disabled]="zonePoints().length < 3" (click)="finishZone()">Terminer la zone</button>
+                <button class="btn btn-small" type="button" (click)="cancelZone()">Annuler</button>
+              } @else {
+                <span class="hint light">Touchez les angles de la zone.</span>
+              }
+            }
+            @case ('select') {
+              @if (selectedId()) {
+                <button class="btn btn-small btn-danger" type="button" (click)="deleteSelected()">Supprimer la forme</button>
+              } @else {
+                <span class="hint light">Touchez une forme pour la déplacer.</span>
+              }
+            }
+            @default {
+              @for (s of strokeWidths; track s[0]) {
+                <button class="choice" type="button" [attr.aria-pressed]="strokeWidth() === s[1]" (click)="strokeWidth.set(s[1])">{{ s[0] }}</button>
+              }
+            }
+          }
+          <span class="spacer"></span>
+          <button class="btn btn-small" type="button" [disabled]="!canUndo()" (click)="undo()" aria-label="Annuler">↶ Annuler</button>
+          <button class="btn btn-small" type="button" [disabled]="!canRedo()" (click)="redo()" aria-label="Rétablir">↷ Rétablir</button>
+        </div>
+      </footer>
+    }
+  </div>
+} @else if (store.visit()) {
+  <div class="page stack">
+    <p>Cette image n'existe plus.</p>
+  </div>
+}

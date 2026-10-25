@@ -24,6 +24,7 @@
         "files": [
           "/templates/**",
           "/config/**",
+          "/pdfjs/**",
           "/icons/**",
           "/**/*.(svg|png|ttf|woff2)"
         ]

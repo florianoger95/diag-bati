@@ -87,10 +87,10 @@
                            (valueChange)="emit({ value: $event.rows }, $event.debounce)" />
       }
       @case ('photo') {
-        <div class="photo-placeholder">
-          <button class="btn" type="button" disabled>📷 {{ it.photoKind === 'plan' ? 'Importer un plan' : 'Prendre une photo' }}</button>
-          <span class="hint">Disponible au Lot 2.</span>
-        </div>
+        @if (withPhotos()) {
+          <app-photo-strip [photos]="photos()" [mode]="it.photoKind === 'plan' ? 'plan' : 'photo'" [readonly]="readonly()"
+                           (add)="media.emit($event)" (open)="openPhoto.emit($event)" />
+        }
       }
     }
   </div>
@@ -101,8 +101,15 @@
               (input)="setObservation($any($event.target).value)"></textarea>
   }
 
-  @if (!readonly() && (snippetTarget() || canDefect())) {
+  @if (compactPhotos() && photos().length) {
+    <app-photo-strip [photos]="photos()" [showActions]="false" (open)="openPhoto.emit($event)" />
+  }
+
+  @if (!readonly() && (snippetTarget() || canDefect() || compactPhotos())) {
     <div class="tools">
+      @if (compactPhotos()) {
+        <app-photo-strip [photos]="photos()" mode="compact" [showThumbs]="false" (add)="media.emit($event)" />
+      }
       @if (snippetTarget()) {
         @for (s of it.snippets; track s) {
           <button class="choice chip snippet" type="button" (click)="insertSnippet(s)">+ {{ s }}</button>

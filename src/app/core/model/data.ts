@@ -1,4 +1,5 @@
 // Données stockées dans IndexedDB. Voir docs/SPEC.md §2.
+import { Shape } from '../annotation/shapes';
 import { ChecklistTemplate } from './template';
 
 export type Urgency = 'immediate' | 'short' | 'medium' | 'monitor';
@@ -114,7 +115,7 @@ export interface Photo {
   number: number;
   caption: string;
   order: number;
-  annotations: unknown[];
+  annotations: Shape[];
   addedInRevision: number;
   removedInRevision?: number;
   createdAt: number;

@@ -3,8 +3,23 @@
 PWA Angular 20 pour saisir les diagnostics terrain sans connexion, puis produire le rapport.
 Spécification complète : [docs/SPEC.md](docs/SPEC.md).
 
-État : **Lot 1** (socle, dossiers, fiches pilotées par JSON, synthèse et clôture).
-Photos et plans : Lot 2 · rapports PDF/DOCX : Lot 3 · mises à jour et sauvegarde : Lot 4.
+État :
+- **Lot 1** : socle, dossiers, fiches pilotées par JSON, synthèse et clôture.
+- **Lot 2** : photos sur chaque item, plans PDF, croquis, annotation au doigt, légende, conclusion.
+
+À venir : rapports PDF/DOCX au Lot 3, mises à jour et sauvegarde au Lot 4.
+
+## Photos, plans et annotation
+
+- Chaque item a ses boutons 📷 (appareil photo) et 🖼 (photothèque, plusieurs photos à la fois).
+  Les photos sont réduites à 1600 px en JPEG dès la prise de vue, une à la fois ; l'original n'est pas conservé.
+- **Plans et croquis** (menu de la visite, ou items « plan » des fiches) : 📄 page d'un plan PDF (choix de la page),
+  📷 photo d'un plan papier, ✏️ croquis sur fond blanc. La page de PDF est aussi gardée en vectoriel pour le rapport.
+- **Annotation** : touchez une vignette.
+  - Un doigt dessine, deux doigts zooment et déplacent ; les boutons ＋ / － / Ajuster permettent aussi de zoomer.
+  - Outils : flèche, rectangle, ellipse, trait libre, zone (touchez les angles, puis « Terminer la zone »), texte, pastille numérotée (numéro suivant, ou numéro d'une autre photo).
+  - Annuler / rétablir. L'outil ☝ sélectionne une forme pour la déplacer, la recolorer ou la supprimer.
+  - À la première utilisation d'une couleur, l'app propose de la nommer : ce nom alimente la légende des plans.
 
 ## Installer sur l'iPad
 

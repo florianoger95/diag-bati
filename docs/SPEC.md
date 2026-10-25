@@ -457,6 +457,8 @@ Ordre de grandeur : 120 photos ≈ 60 Mo par dossier.
 
 **Mémoire** : jamais plus d'un canvas pleine taille ouvert à la fois. pdf.js est détruit après chaque import (`destroy()`).
 
+**Binaires en navigation privée** *(constaté au Lot 2)* : WebKit refuse d'enregistrer des `Blob` dans IndexedDB dans une session éphémère (navigation privée de Safari, contextes de test). L'app le détecte une fois par session ; dans ce cas, elle stocke le même binaire en `ArrayBuffer` (jamais en base64) et le relit en `Blob`. En usage normal, les images restent des `Blob`.
+
 **Service worker / GitHub Pages** :
 - `ng build --base-href /<repo>/` ;
 - `404.html` = `index.html` ;

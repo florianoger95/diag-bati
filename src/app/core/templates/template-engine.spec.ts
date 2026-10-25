@@ -174,6 +174,16 @@ describe('progression, obligatoires, désordres, actions', () => {
     expect(missing.map((m) => `${m.instanceId}/${m.itemId}`)).toEqual(['generalites/gen-temps']);
   });
 
+  it('compte un item photo obligatoire comme manquant tant qu’il n’a pas de photo', () => {
+    const t = sampleTemplate();
+    t.sections[0].items[1].required = true; // gen-plan
+    const r = resolveTemplate(t);
+    const ids = (photos: { instanceId: string | null; itemId: string | null }[]) =>
+      missingRequired(r, visit, answers, photos).map((m) => m.itemId);
+    expect(ids([])).toContain('gen-plan');
+    expect(ids([{ instanceId: 'generalites', itemId: 'gen-plan' }])).not.toContain('gen-plan');
+  });
+
   it('collecte les désordres triés par urgence', () => {
     const defects = collectDefects(resolved, visit, answers);
     expect(defects.map((d) => [d.instanceLabel, d.itemLabel, d.urgency])).toEqual([

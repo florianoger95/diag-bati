@@ -26,7 +26,9 @@
       @if (item.fromFooter && $first === false && !items()[$index - 1].fromFooter) {
         <h2 class="footer-title">Synthèse de la fiche</h2>
       }
-      <app-item-field [item]="item" [state]="state(item)" [readonly]="store.readOnly()" (changed)="onChange(item, $event)" />
+      <app-item-field [item]="item" [state]="state(item)" [readonly]="store.readOnly()" (changed)="onChange(item, $event)"
+                      [withPhotos]="true" [photos]="store.photoViews(inst.id, item.id)"
+                      (media)="onMedia(item, $event)" (openPhoto)="openPhoto($event)" />
     }
 
     <nav class="pager" aria-label="Fiche précédente ou suivante">

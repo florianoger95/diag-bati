@@ -3,12 +3,13 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 import { DialogService } from '../../core/services/dialog.service';
+import { PdfPagePickerComponent } from './media/pdf-page-picker.component';
 import { NavSection, VisitStore } from './visit-store';
 
 /** Mise en page d'une visite : navigation par fiches (tiroir en portrait, colonne en paysage). */
 @Component({
   selector: 'app-visit-page',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, PdfPagePickerComponent],
   providers: [VisitStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './visit.page.html',

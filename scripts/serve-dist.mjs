@@ -10,7 +10,7 @@ const base = (process.argv[3] ?? '/').replace(/\/?$/, '/');
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'diag-bati', 'browser');
 
 const types = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css',
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
   '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png',
   '.ico': 'image/x-icon', '.svg': 'image/svg+xml', '.ttf': 'font/ttf', '.woff2': 'font/woff2', '.txt': 'text/plain',
 };

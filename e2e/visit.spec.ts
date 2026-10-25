@@ -1,37 +1,5 @@
-import { expect, Page, test } from '@playwright/test';
-
-/** Attend que le service worker contrôle la page (app disponible hors ligne). */
-async function waitForOfflineReady(page: Page): Promise<void> {
-  await page.goto('./');
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
-  });
-  await page.reload();
-  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
-}
-
-/** Ouvre une fiche ou une page de la visite (via le tiroir en portrait). */
-async function openSheet(page: Page, name: string | RegExp): Promise<void> {
-  const drawer = page.getByRole('button', { name: '☰ Fiches' });
-  if (await drawer.isVisible()) await drawer.click();
-  await page.getByRole('navigation', { name: 'Fiches de la visite' }).getByRole('link', { name }).click();
-}
-
-async function addInstance(page: Page, button: string, label: string): Promise<void> {
-  const drawer = page.getByRole('button', { name: '☰ Fiches' });
-  if (await drawer.isVisible()) await drawer.click();
-  await page.getByRole('button', { name: button }).click();
-  await page.getByRole('button', { name: label }).click();
-  await page.getByRole('button', { name: 'Ajouter', exact: true }).click();
-}
-
-async function createProject(page: Page, name: string): Promise<void> {
-  await page.getByRole('link', { name: '+ Nouveau dossier' }).click();
-  await page.locator('#item-projet input').fill(name);
-  await page.locator('#item-adresse input').fill('12 rue des Lilas 00000 VILLE-TEST');
-  await page.getByRole('button', { name: 'Créer et commencer la visite' }).click();
-  await expect(page.getByRole('heading', { name: 'Conditions de visite' })).toBeVisible();
-}
+import { expect, test } from '@playwright/test';
+import { addInstance, createProject, openSheet, waitForOfflineReady } from './helpers';
 
 test('mode avion : création, saisie, désordre, ajout de bâtiment et clôture', async ({ page, context }) => {
   await waitForOfflineReady(page);

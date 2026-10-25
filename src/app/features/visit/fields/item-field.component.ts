@@ -13,6 +13,7 @@ import { ResolvedItem } from '../../../core/model/template';
 import { isOutOfRange } from '../../../core/templates/template-engine';
 import { AutoGrowDirective } from '../../../shared/auto-grow.directive';
 import { NumberInputComponent } from '../../../shared/number-input.component';
+import { MediaRequest, PhotoStripComponent, PhotoView } from '../../../shared/photo-strip.component';
 import { ActionsFieldComponent } from './actions-field.component';
 import { MeasuresFieldComponent } from './measures-field.component';
 
@@ -31,7 +32,7 @@ export interface FieldChange {
 /** Rendu d'un item du modèle, quel que soit son type. Ne connaît pas la base : émet des modifications. */
 @Component({
   selector: 'app-item-field',
-  imports: [AutoGrowDirective, NumberInputComponent, MeasuresFieldComponent, ActionsFieldComponent],
+  imports: [AutoGrowDirective, NumberInputComponent, MeasuresFieldComponent, ActionsFieldComponent, PhotoStripComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './item-field.component.html',
   styleUrl: './item-field.component.scss',
@@ -47,7 +48,12 @@ export class ItemFieldComponent {
   readonly readonly = input(false);
   /** Désordre et observation : désactivés pour les champs d'en-tête. */
   readonly allowDefect = input(true);
+  /** Photos rattachées à l'item (affichées seulement si withPhotos). */
+  readonly photos = input<PhotoView[]>([]);
+  readonly withPhotos = input(false);
   readonly changed = output<FieldChange>();
+  readonly media = output<MediaRequest>();
+  readonly openPhoto = output<string>();
 
   readonly urgencies = URGENCIES;
   readonly urgencyLabels = URGENCY_LABELS;
@@ -57,6 +63,8 @@ export class ItemFieldComponent {
 
   /** Pas de désordre sur les rubriques de synthèse (commentaires, préconisations, mesures). */
   readonly canDefect = computed(() => this.allowDefect() && !this.item().role);
+  /** Boutons photo discrets sur les items qui ne sont pas des items photo. */
+  readonly compactPhotos = computed(() => this.withPhotos() && this.item().type !== 'photo' && !this.item().role);
   readonly value = computed(() => this.state()?.value ?? null);
   readonly observation = computed(() => this.state()?.observation ?? '');
   readonly showObservation = computed(() => {

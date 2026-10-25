@@ -43,6 +43,11 @@ export function sectionItems(template: ResolvedTemplate, sectionId: string): Res
   return template.sections.find((s) => s.id === sectionId)?.items ?? [];
 }
 
+/** Une photo est visible dans la révision r si elle y a été ajoutée avant et pas encore retirée. */
+export function isPhotoVisible(photo: { addedInRevision: number; removedInRevision?: number }, revision: number): boolean {
+  return photo.addedInRevision <= revision && (photo.removedInRevision === undefined || photo.removedInRevision > revision);
+}
+
 /** Item qui compte dans la progression (les titres et les photos n'en font pas partie). */
 export function isCountable(item: ResolvedItem): boolean {
   return item.type !== 'heading' && item.type !== 'photo';
@@ -121,14 +126,22 @@ export interface ItemRef {
   itemLabel: string;
 }
 
-export function missingRequired(template: ResolvedTemplate, visit: Visit, answers: Answer[]): ItemRef[] {
+export function missingRequired(
+  template: ResolvedTemplate,
+  visit: Visit,
+  answers: Answer[],
+  photos: { instanceId: string | null; itemId: string | null }[] = [],
+): ItemRef[] {
   const index = indexAnswers(answers);
+  const withPhotos = new Set(photos.map((p) => answerKey(p.instanceId ?? '', p.itemId ?? '')));
   const missing: ItemRef[] = [];
   for (const instance of sortedInstances(visit, template)) {
     for (const item of sectionItems(template, instance.sectionId)) {
       if (!item.required || item.type === 'heading') continue;
-      if (item.type === 'photo') continue; // vérifié au Lot 2 avec les photos
-      if (!isAnswered(item, index.get(answerKey(instance.id, item.id)))) {
+      const done = item.type === 'photo'
+        ? withPhotos.has(answerKey(instance.id, item.id))
+        : isAnswered(item, index.get(answerKey(instance.id, item.id)));
+      if (!done) {
         missing.push({
           instanceId: instance.id, instanceLabel: instance.label, sectionId: instance.sectionId,
           itemId: item.id, itemLabel: item.label,

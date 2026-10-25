@@ -2,6 +2,7 @@ import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyR
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ResolvedItem } from '../../core/model/template';
 import { DialogService } from '../../core/services/dialog.service';
+import { MediaRequest } from '../../shared/photo-strip.component';
 import { FieldChange, ItemFieldComponent } from './fields/item-field.component';
 import { VisitStore } from './visit-store';
 
@@ -75,6 +76,15 @@ export class InstancePage {
 
   onChange(item: ResolvedItem, change: FieldChange): void {
     this.store.setAnswer(this.instanceId(), item.id, change.patch, { debounce: change.debounce });
+  }
+
+  async onMedia(item: ResolvedItem, request: MediaRequest): Promise<void> {
+    const created = await this.store.handleMedia(request, { instanceId: this.instanceId(), itemId: item.id });
+    if (created) await this.openPhoto(created.id);
+  }
+
+  openPhoto(photoId: string): Promise<boolean> {
+    return this.router.navigate(this.store.link('photos', photoId));
   }
 
   async rename(): Promise<void> {

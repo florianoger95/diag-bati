@@ -27,7 +27,7 @@ export class SynthesePage {
     const missingFields = t.visitFields
       .filter((f) => f.required && !v.fields[f.id])
       .map((f) => ({ itemId: f.id, itemLabel: f.label, instanceId: null as string | null, instanceLabel: 'Conditions de visite' }));
-    return [...missingFields, ...missingRequired(t, v, this.answers())];
+    return [...missingFields, ...missingRequired(t, v, this.answers(), this.store.photos())];
   });
 
   readonly defects = computed(() => {
