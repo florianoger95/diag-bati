@@ -83,7 +83,8 @@ test('mode avion : sauvegarde d’un dossier, suppression, restauration puis cop
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: '⇪ Exporter' }).click();
   const file = await download;
-  expect(file.suggestedFilename()).toMatch(/PROJET SAUVEGARDE\.diag\.zip$/);
+  // WebKit sous Linux remplace les espaces du nom de fichier par « _ »
+  expect(file.suggestedFilename()).toMatch(/PROJET[ _]SAUVEGARDE\.diag\.zip$/);
   const path = join(tmpdir(), `diag-${Date.now()}.diag.zip`);
   await file.saveAs(path);
   await expect(page.getByText(/non exporté/)).toHaveCount(0);
