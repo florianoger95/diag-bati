@@ -35,6 +35,22 @@
       </div>
     }
 
+    @if (canAdjust()) {
+      <div class="adjust" role="group" aria-label="Ajuster le plan">
+        <span class="light">Ajuster le plan (avant de l'annoter) :</span>
+        <button class="btn btn-small" type="button" [disabled]="adjusting()" (click)="rotate(270)">⟲ Pivoter à gauche</button>
+        <button class="btn btn-small" type="button" [disabled]="adjusting()" (click)="rotate(90)">⟳ Pivoter à droite</button>
+        <button class="btn btn-small" type="button" [attr.aria-pressed]="cropMode()" [disabled]="adjusting()" (click)="toggleCrop()">
+          ✂ {{ cropMode() ? 'Annuler le recadrage' : 'Recadrer' }}
+        </button>
+        @if (cropMode()) {
+          <span class="light">Tracez le cadre à garder.</span>
+          <button class="btn btn-small btn-primary" type="button" [disabled]="!cropRect() || adjusting()" (click)="applyCrop()">Appliquer le recadrage</button>
+        }
+        @if (adjusting()) { <span class="light">Traitement…</span> }
+      </div>
+    }
+
     @if (!readonly()) {
       <footer class="toolbar">
         <div class="group" role="toolbar" aria-label="Outils">
@@ -66,9 +82,11 @@
               }
             }
             @case ('badge') {
+              <button class="choice" type="button" [attr.aria-pressed]="badgeMode() === 'number'" (click)="badgeMode.set('number')">1-2-3</button>
+              <button class="choice" type="button" [attr.aria-pressed]="badgeMode() === 'letter'" (click)="badgeMode.set('letter')">A-B-C</button>
               <select class="input badge-select" [value]="badgeTarget()" (change)="badgeTarget.set($any($event.target).value)"
                       aria-label="Numéro de la pastille">
-                <option value="auto">N° suivant ({{ nextBadge() }})</option>
+                <option value="auto">Suivant ({{ nextBadge() }})</option>
                 @for (o of otherPhotos(); track o.id) {
                   <option [value]="o.id">Photo {{ o.number }}{{ o.caption ? ' — ' + o.caption : '' }}</option>
                 }
@@ -87,8 +105,17 @@
                 <span class="hint light">Touchez les angles de la zone.</span>
               }
             }
+            @case ('stamp') {
+              @for (s of stamps; track s) {
+                <button class="choice" type="button" [attr.aria-pressed]="stampText() === s" (click)="stampText.set(s)">{{ s }}</button>
+              }
+              @for (s of textSizes; track s[0]) {
+                <button class="choice" type="button" [attr.aria-pressed]="textSize() === s[1]" (click)="textSize.set(s[1])">{{ s[0] }}</button>
+              }
+            }
             @case ('select') {
               @if (selectedId()) {
+                <button class="btn btn-small" type="button" (click)="duplicateSelected()">⧉ Dupliquer</button>
                 <button class="btn btn-small btn-danger" type="button" (click)="deleteSelected()">Supprimer la forme</button>
               } @else {
                 <span class="hint light">Touchez une forme pour la déplacer.</span>

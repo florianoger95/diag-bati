@@ -9,14 +9,26 @@ interface Base {
 }
 
 export interface ArrowShape extends Base { kind: 'arrow'; x1: number; y1: number; x2: number; y2: number; width: number }
+export interface LineShape extends Base { kind: 'line'; x1: number; y1: number; x2: number; y2: number; width: number }
+/** Tampon : texte encadré d'une ellipse (« À SONDER »…). */
+export interface StampShape extends Base { kind: 'stamp'; x: number; y: number; text: string; size: number }
 export interface RectShape extends Base { kind: 'rect'; x: number; y: number; w: number; h: number; width: number }
 export interface EllipseShape extends Base { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number; width: number }
 export interface FreeShape extends Base { kind: 'free'; points: Point[]; width: number }
 export interface ZoneShape extends Base { kind: 'zone'; points: Point[]; fill: 'hatch' | 'tint' }
 export interface TextShape extends Base { kind: 'text'; x: number; y: number; text: string; size: number }
-export interface BadgeShape extends Base { kind: 'badge'; x: number; y: number; n: number; size: number; photoId?: string }
+/** Pastille : numéro `n`, ou lettre `label` (A, B, C…) ; `photoId` la relie à une photo. */
+export interface BadgeShape extends Base { kind: 'badge'; x: number; y: number; n: number; label?: string; size: number; photoId?: string }
 
-export type Shape = ArrowShape | RectShape | EllipseShape | FreeShape | ZoneShape | TextShape | BadgeShape;
+export type Shape = ArrowShape | LineShape | RectShape | EllipseShape | FreeShape | ZoneShape | TextShape | BadgeShape | StampShape;
+
+/** Tampons proposés dans l'annotateur. */
+export const STAMPS = ['À SONDER', 'TÉMOIN', 'VOIR PHOTO'];
+
+/** Demi-largeur et demi-hauteur d'un tampon (fraction de la largeur de l'image). */
+export function stampRadii(s: Pick<StampShape, 'text' | 'size'>): { rx: number; ry: number } {
+  return { rx: s.text.length * s.size * 0.36 + s.size * 0.8, ry: s.size * 1.1 };
+}
 export type ShapeKind = Shape['kind'];
 
 /** Épaisseurs proposées (fraction de la largeur de l'image). */
@@ -43,7 +55,12 @@ export const LEGEND_SUGGESTIONS = [
 export function bounds(s: Shape): { x: number; y: number; w: number; h: number } {
   switch (s.kind) {
     case 'arrow':
+    case 'line':
       return { x: Math.min(s.x1, s.x2), y: Math.min(s.y1, s.y2), w: Math.abs(s.x2 - s.x1), h: Math.abs(s.y2 - s.y1) };
+    case 'stamp': {
+      const { rx, ry } = stampRadii(s);
+      return { x: s.x - rx, y: s.y - ry, w: 2 * rx, h: 2 * ry };
+    }
     case 'rect':
       return { x: Math.min(s.x, s.x + s.w), y: Math.min(s.y, s.y + s.h), w: Math.abs(s.w), h: Math.abs(s.h) };
     case 'ellipse':
@@ -67,7 +84,10 @@ export function bounds(s: Shape): { x: number; y: number; w: number; h: number }
 export function translate(s: Shape, dx: number, dy: number): Shape {
   switch (s.kind) {
     case 'arrow':
+    case 'line':
       return { ...s, x1: s.x1 + dx, y1: s.y1 + dy, x2: s.x2 + dx, y2: s.y2 + dy };
+    case 'stamp':
+      return { ...s, x: s.x + dx, y: s.y + dy };
     case 'rect':
       return { ...s, x: s.x + dx, y: s.y + dy };
     case 'ellipse':
@@ -79,6 +99,28 @@ export function translate(s: Shape, dx: number, dy: number): Shape {
     case 'badge':
       return { ...s, x: s.x + dx, y: s.y + dy };
   }
+}
+
+/** Copie décalée d'une forme (copier/coller). */
+export function duplicate(s: Shape, id: string, offset = 0.03): Shape {
+  return { ...translate(structuredClone(s), offset, offset), id };
+}
+
+/** Lettre de rang i : A…Z, puis AA, AB… */
+function letter(i: number): string {
+  let out = '';
+  for (let n = i + 1; n > 0; n = Math.floor((n - 1) / 26)) out = String.fromCharCode(65 + ((n - 1) % 26)) + out;
+  return out;
+}
+
+/** Repère suivant d'une pastille : numéro (max + 1) ou première lettre libre. Les pastilles liées à une photo sont ignorées. */
+export function nextBadge(shapes: readonly Shape[], mode: 'number' | 'letter'): { n: number; label?: string } {
+  const badges = shapes.filter((s): s is BadgeShape => s.kind === 'badge' && !s.photoId);
+  if (mode === 'number') return { n: badges.filter((b) => !b.label).reduce((max, b) => Math.max(max, b.n), 0) + 1 };
+  const used = new Set(badges.map((b) => b.label).filter(Boolean));
+  let i = 0;
+  while (used.has(letter(i))) i++;
+  return { n: 0, label: letter(i) };
 }
 
 /** Forme touchée au point (x, y) normalisé, la plus récente d'abord. `tolerance` en fraction de largeur. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AnnotationHistory } from './history';
-import { arrowHead, bounds, hitTest, Point, Shape, simplify, translate, usedColors } from './shapes';
+import { arrowHead, bounds, duplicate, hitTest, nextBadge, Point, Shape, simplify, translate, usedColors } from './shapes';
 
 const rect: Shape = { id: 'r', kind: 'rect', x: 0.1, y: 0.2, w: 0.3, h: 0.1, color: '#E00000', width: 0.005 };
 const badge: Shape = { id: 'b', kind: 'badge', x: 0.8, y: 0.8, n: 3, size: 0.03, color: '#0070c0' };
@@ -45,6 +45,41 @@ describe('géométrie des formes', () => {
 
   it('liste les couleurs utilisées sans doublon, en minuscules', () => {
     expect(usedColors([rect, badge, { ...rect, id: 'x', color: '#e00000' }])).toEqual(['#e00000', '#0070c0']);
+  });
+});
+
+describe('trait, tampon, lettres, duplication', () => {
+  const line: Shape = { id: 'l', kind: 'line', x1: 0.2, y1: 0.6, x2: 0.5, y2: 0.1, color: '#000', width: 0.004 };
+  const stamp: Shape = { id: 's', kind: 'stamp', x: 0.5, y: 0.5, text: 'À SONDER', size: 0.03, color: '#e00000' };
+
+  it('calcule le cadre et déplace un trait et un tampon', () => {
+    expect(bounds(line)).toEqual({ x: 0.2, y: 0.1, w: 0.3, h: 0.5 });
+    const moved = translate(line, 0.1, 0.1) as Extract<Shape, { kind: 'line' }>;
+    expect([moved.x1, moved.y1, moved.x2, moved.y2].map((v) => +v.toFixed(6))).toEqual([0.3, 0.7, 0.6, 0.2]);
+    const b = bounds(stamp);
+    expect(b.x).toBeLessThan(0.5);
+    expect(b.x + b.w).toBeGreaterThan(0.5);
+    expect(translate(stamp, 0.1, 0)).toMatchObject({ x: 0.6, y: 0.5 });
+    expect(hitTest([stamp], 0.5, 0.5)?.id).toBe('s');
+  });
+
+  it('propose le repère suivant : numéro ou lettre', () => {
+    const shapes: Shape[] = [
+      { id: 'a', kind: 'badge', x: 0, y: 0, n: 1, size: 0.03, color: '#000' },
+      { id: 'b', kind: 'badge', x: 0, y: 0, n: 2, size: 0.03, color: '#000' },
+      { id: 'c', kind: 'badge', x: 0, y: 0, n: 0, label: 'A', size: 0.03, color: '#000' },
+      { id: 'd', kind: 'badge', x: 0, y: 0, n: 7, size: 0.03, color: '#000', photoId: 'p7' },
+    ];
+    expect(nextBadge(shapes, 'number')).toEqual({ n: 3 });
+    expect(nextBadge(shapes, 'letter')).toEqual({ n: 0, label: 'B' });
+    const az = Array.from({ length: 26 }, (_, i): Shape => ({ id: `x${i}`, kind: 'badge', x: 0, y: 0, n: 0, label: String.fromCharCode(65 + i), size: 0.03, color: '#000' }));
+    expect(nextBadge(az, 'letter')).toEqual({ n: 0, label: 'AA' });
+  });
+
+  it('duplique une forme, décalée, avec un nouvel identifiant', () => {
+    const copy = duplicate(line, 'l2');
+    expect(copy).toMatchObject({ id: 'l2', kind: 'line', x1: 0.23, y1: 0.63 });
+    expect(line.id).toBe('l');
   });
 });
 

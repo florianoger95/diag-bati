@@ -1,6 +1,6 @@
 // Construction du rapport (fonction pure) : données de la visite → modèle sémantique (docs/SPEC.md §6).
 import { usedColors } from '../annotation/shapes';
-import { ActionRow, Answer, MeasureRow, OTHER_VALUE, Photo, Project, URGENCIES, URGENCY_LABELS, Urgency, Visit } from '../model/data';
+import { ActionRow, Answer, MeasureRow, OTHER_VALUE, Photo, Project, URGENCIES, URGENCY_LABELS, URGENCY_LEGEND, Urgency, Visit } from '../model/data';
 import { ResolvedItem, ResolvedSection, ResolvedTemplate } from '../model/template';
 import { answerKey, collectActions, collectDefects, hasValue, isRevised, sectionItems } from '../templates/template-engine';
 import { applyLexicon, CompiledLexicon, LexiconState, stripExclusions } from './lexicon';
@@ -357,6 +357,7 @@ function defects(b: Builder): void {
     b.paragraph([text('Aucun désordre relevé.', { italic: true })]);
     return;
   }
+  b.paragraph([text(URGENCY_LEGEND)], { style: 'caption', align: 'left' });
   for (const u of URGENCIES) {
     const group = list.filter((d) => d.urgency === u);
     if (!group.length) continue;
@@ -380,6 +381,7 @@ function works(b: Builder): void {
   const maintenance = collectActions(template, visit, answers, 'maintenance');
   if (!safety.length && !recos.length && !maintenance.length) return;
   b.heading(1, config.headings.works, { pageBreakBefore: true });
+  b.paragraph([text(URGENCY_LEGEND)], { style: 'caption', align: 'left' });
   if (safety.length) {
     b.heading(3, config.headings.safety);
     for (const a of safety) b.paragraph([text(`${b.lex(a.text.trim())} (${urgencyLower(a.urgency)}) — ${a.instanceLabel}`)], { bullet: true });

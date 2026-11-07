@@ -66,8 +66,12 @@ Ouvrir l'app connecté jusqu'à voir **« Prête hors ligne ✓ »** en bas de l
   📷 photo d'un plan papier, ✏️ croquis sur fond blanc. La page de PDF est aussi gardée en vectoriel pour le rapport.
 - **Annotation** : touchez une vignette.
   - Un doigt dessine, deux doigts zooment et déplacent ; les boutons ＋ / － / Ajuster permettent aussi de zoomer.
-  - Outils : flèche, rectangle, ellipse, trait libre, zone (touchez les angles, puis « Terminer la zone »), texte, pastille numérotée (numéro suivant, ou numéro d'une autre photo).
-  - Annuler / rétablir. L'outil ☝ sélectionne une forme pour la déplacer, la recolorer ou la supprimer.
+  - Outils : flèche, trait droit, rectangle, ellipse, trait libre, zone (touchez les angles, puis « Terminer la zone »), texte,
+    pastille (1-2-3 ou A-B-C, ou numéro d'une autre photo), tampon (« À SONDER », « TÉMOIN », « VOIR PHOTO »).
+  - Annuler / rétablir. L'outil ☝ sélectionne une forme pour la déplacer, la dupliquer, la recolorer ou la supprimer.
+  - **Pivoter et recadrer un plan** : à l'import, tant qu'il n'est pas annoté (⟲ ⟳ ✂ au-dessus des outils).
+    L'image et la page PDF vectorielle sont transformées ensemble.
+  - Les vignettes des fiches montrent les annotations (croquis compris).
   - À la première utilisation d'une couleur, l'app propose de la nommer : ce nom alimente la légende des plans.
 
 ## Installer sur l'iPad

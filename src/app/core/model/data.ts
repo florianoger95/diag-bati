@@ -13,6 +13,17 @@ export const URGENCY_LABELS: Record<Urgency, string> = {
   monitor: 'À surveiller',
 };
 
+/** Définition de chaque urgence, rappelée dans l'app et dans le rapport. */
+export const URGENCY_DEFINITIONS: Record<Urgency, string> = {
+  immediate: 'action dans les prochaines semaines',
+  short: 'à prévoir dans le cadre des travaux',
+  medium: 'à faire dans les 5 ans',
+  monitor: 'action si l’état de dégradation évolue',
+};
+
+/** « Immédiat : action dans les prochaines semaines · Court terme : … » */
+export const URGENCY_LEGEND = URGENCIES.map((u) => `${URGENCY_LABELS[u]} : ${URGENCY_DEFINITIONS[u]}`).join(' · ');
+
 export interface MeasureRow {
   id: string;
   point: string;

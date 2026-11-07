@@ -3,6 +3,8 @@ import { AutosaveQueue } from '../../core/autosave/autosave-queue';
 import { EditJournal } from '../../core/autosave/edit-journal';
 import { PhotoPatch, ReadOnlyVisitError } from '../../core/db/diag-repository';
 import { blankSketch, compressImage, PHOTO_OPTIONS, PLAN_OPTIONS } from '../../core/media/image-compress';
+import { PlanTransform, transformRaster, transformVector } from '../../core/media/plan-transform';
+import { annotatedThumb } from '../../core/media/thumbnail';
 import { ImportedPlan, openPdf, PdfHandle } from '../../core/media/pdf-plan';
 import { Answer, AnswerPatch, LegendEntry, Photo, Project, SectionInstance, Visit, VisitCursor } from '../../core/model/data';
 import { StorageService } from '../../core/services/storage.service';
@@ -15,6 +17,9 @@ import { answerKey, instanceProgress, Progress, resolveTemplate, sectionItems } 
 export interface NavInstance extends SectionInstance {
   progress: Progress;
 }
+
+/** Clé de vignette : l'image seule, ou l'image et l'état de ses annotations. */
+const thumbKey = (p: Photo) => (p.annotations.length ? `${p.id}@${p.updatedAt}` : p.blobId);
 
 /** Item réservé aux plans de la conclusion (photo rattachée à la visite). */
 export const CONCLUSION_ITEM = '__conclusion';
@@ -280,7 +285,7 @@ export class VisitStore implements OnDestroy {
   }
 
   thumbUrl(photo: Photo): string | undefined {
-    return this.thumbs().get(photo.blobId);
+    return this.thumbs().get(thumbKey(photo));
   }
 
   private async loadPhotos(): Promise<void> {
@@ -290,17 +295,29 @@ export class VisitStore implements OnDestroy {
     await this.loadThumbs();
   }
 
-  /** Crée les URL des vignettes manquantes (les binaires sont lus à la demande). */
+  /**
+   * Crée les URL des vignettes manquantes (binaires lus à la demande). Une image annotée a sa vignette
+   * redessinée avec ses annotations ; les URL devenues inutiles sont libérées.
+   */
   private async loadThumbs(): Promise<void> {
     const map = new Map(this.thumbs());
+    const used = new Set<string>();
     let changed = false;
     for (const p of this.photos()) {
-      if (map.has(p.blobId)) continue;
+      const key = thumbKey(p);
+      used.add(key);
+      if (map.has(key)) continue;
       const blob = await this.repo.getBlob(p.blobId);
-      if (blob) {
-        map.set(p.blobId, URL.createObjectURL(blob.thumb));
-        changed = true;
-      }
+      if (!blob) continue;
+      const thumb = p.annotations.length ? await annotatedThumb(blob.thumb, p.annotations).catch(() => blob.thumb) : blob.thumb;
+      map.set(key, URL.createObjectURL(thumb));
+      changed = true;
+    }
+    for (const [key, url] of map) {
+      if (used.has(key)) continue;
+      URL.revokeObjectURL(url);
+      map.delete(key);
+      changed = true;
     }
     if (changed) this.thumbs.set(map);
   }
@@ -412,12 +429,32 @@ export class VisitStore implements OnDestroy {
     });
   }
 
+  /** Pivote ou recadre un plan non annoté : image et page vectorielle ensemble. */
+  adjustPlan(photoId: string, transform: PlanTransform): Promise<Photo | undefined> {
+    const visit = this.visit();
+    if (!visit || this.readOnly()) return Promise.resolve(undefined);
+    return this.enqueueMedia(async () => {
+      const photo = this.photo(photoId);
+      const blob = photo ? await this.repo.getBlob(photo.blobId) : undefined;
+      if (!photo || !blob) throw new Error('Plan introuvable.');
+      const raster = await transformRaster(blob.image, transform);
+      const vector = blob.vector
+        ? new Blob([(await transformVector(new Uint8Array(await blob.vector.arrayBuffer()), transform)).slice().buffer as ArrayBuffer], { type: 'application/pdf' })
+        : undefined;
+      const updated = await this.repo.replacePhotoImage(visit.id, photoId, { ...raster, ...(vector ? { vector } : {}) });
+      this.photos.update((list) => list.map((p) => (p.id === photoId ? updated : p)));
+      await this.loadThumbs();
+      return updated;
+    });
+  }
+
   async updatePhoto(photoId: string, patch: PhotoPatch): Promise<Photo | undefined> {
     const visit = this.visit();
     if (!visit || this.readOnly()) return undefined;
     try {
       const updated = await this.repo.updatePhoto(visit.id, photoId, patch);
       this.photos.update((list) => list.map((p) => (p.id === photoId ? updated : p)));
+      if (patch.annotations) void this.loadThumbs();
       return updated;
     } catch (error) {
       this.dialogs.notify((error as Error).message, true);

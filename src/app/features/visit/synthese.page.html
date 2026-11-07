@@ -6,6 +6,7 @@
     @if (defects().length === 0) {
       <p class="hint">Aucun désordre relevé.</p>
     } @else {
+      <p class="hint">{{ urgencyLegend }}</p>
       <ul class="list">
         @for (d of defects(); track d.instanceId + d.itemId) {
           <li>

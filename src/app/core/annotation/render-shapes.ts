@@ -1,4 +1,4 @@
-import { arrowHead, bounds, Point, Shape } from './shapes';
+import { arrowHead, bounds, Point, Shape, stampRadii } from './shapes';
 
 export interface RenderOptions {
   selectedId?: string | null;
@@ -40,6 +40,27 @@ export function renderShapes(
         ctx.stroke();
         break;
       }
+      case 'line':
+        ctx.lineWidth = Math.max(1, s.width * width);
+        ctx.beginPath();
+        ctx.moveTo(px(s.x1), py(s.y1));
+        ctx.lineTo(px(s.x2), py(s.y2));
+        ctx.stroke();
+        break;
+      case 'stamp': {
+        const size = Math.max(8, s.size * width);
+        const { rx, ry } = stampRadii(s);
+        ctx.lineWidth = Math.max(1.5, size / 7);
+        ctx.beginPath();
+        ctx.ellipse(px(s.x), py(s.y), rx * width, ry * width, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.font = `800 ${size}px ${FONT}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(s.text, px(s.x), py(s.y));
+        ctx.textAlign = 'start';
+        break;
+      }
       case 'rect':
         ctx.lineWidth = Math.max(1, s.width * width);
         ctx.strokeRect(px(s.x), py(s.y), s.w * width, s.h * height);
@@ -78,10 +99,11 @@ export function renderShapes(
         ctx.strokeStyle = '#ffffff';
         ctx.stroke();
         ctx.fillStyle = '#ffffff';
-        ctx.font = `800 ${r * (s.n > 99 ? 0.8 : 1.1)}px ${FONT}`;
+        const label = s.label ?? String(s.n);
+        ctx.font = `800 ${r * (label.length > 2 ? 0.8 : 1.1)}px ${FONT}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(String(s.n), cx, cy + r * 0.05);
+        ctx.fillText(label, cx, cy + r * 0.05);
         ctx.textAlign = 'start';
         break;
       }

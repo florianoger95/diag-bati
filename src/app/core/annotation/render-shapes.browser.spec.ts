@@ -98,6 +98,32 @@ describe('renderShapes', () => {
     expect(white).toBeGreaterThan(20);
   });
 
+  it('trace un trait droit sans pointe', () => {
+    const ctx = canvas(200, 200);
+    renderShapes(ctx, [{ id: 'l', kind: 'line', x1: 0.1, y1: 0.5, x2: 0.9, y2: 0.5, color: '#ff0000', width: 0.02 }], 200, 200);
+    expect(isRed(pixel(ctx, 100, 100))).toBe(true);
+    expect(isWhite(pixel(ctx, 166, 93))).toBe(true); // là où une flèche aurait sa pointe
+  });
+
+  it('pose un tampon : ellipse et texte', () => {
+    const ctx = canvas(400, 200);
+    renderShapes(ctx, [{ id: 's', kind: 'stamp', x: 0.5, y: 0.5, text: 'À SONDER', size: 0.05, color: '#ff0000' }], 400, 200);
+    let red = 0;
+    for (let x = 140; x < 260; x++) if (isRed(pixel(ctx, x, 100))) red++;
+    expect(red).toBeGreaterThan(5); // lettres
+    let border = 0;
+    for (let y = 0; y < 200; y++) if (isRed(pixel(ctx, 200, y))) border++;
+    expect(border).toBeGreaterThan(2); // contour de l'ellipse au-dessus et au-dessous du texte
+  });
+
+  it('écrit une lettre dans une pastille', () => {
+    const ctx = canvas(200, 200);
+    renderShapes(ctx, [{ id: 'b', kind: 'badge', x: 0.5, y: 0.5, n: 0, label: 'B', size: 0.1, color: '#ff0000' }], 200, 200);
+    let whiteInside = 0;
+    for (let x = 92; x < 108; x++) for (let y = 92; y < 108; y++) if (isWhite(pixel(ctx, x, y))) whiteInside++;
+    expect(whiteInside).toBeGreaterThan(5);
+  });
+
   it('met en évidence la forme sélectionnée', () => {
     const ctx = canvas(200, 100);
     const shape: Shape = { id: 'r', kind: 'rect', x: 0.25, y: 0.25, w: 0.5, h: 0.5, color: '#000000', width: 0.01 };

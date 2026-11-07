@@ -40,6 +40,7 @@ export interface MediaRequest {
       <div class="actions">
         @if (mode() === 'plan') {
           <button class="btn btn-small" type="button" (click)="pdf.click()">📄 Plan PDF</button>
+          <button class="btn btn-small" type="button" (click)="planImage.click()">🖼 Image du plan</button>
           <button class="btn btn-small" type="button" (click)="planCam.click()">📷 Photo d'un plan</button>
           <button class="btn btn-small" type="button" (click)="add.emit({ source: 'sketch' })">✏️ Croquis</button>
         } @else {
@@ -52,6 +53,7 @@ export interface MediaRequest {
       <input #cam type="file" accept="image/*" capture="environment" hidden (change)="pick($event, 'camera')" />
       <input #lib type="file" accept="image/*" multiple hidden (change)="pick($event, 'library')" data-testid="photo-library" />
       <input #planCam type="file" accept="image/*" capture="environment" hidden (change)="pick($event, 'plan-photo')" />
+      <input #planImage type="file" accept="image/*" hidden (change)="pick($event, 'plan-photo')" data-testid="plan-image" />
       <input #pdf type="file" accept="application/pdf" hidden (change)="pick($event, 'pdf')" data-testid="plan-pdf" />
     }
   `,

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { URGENCIES, URGENCY_LABELS, Urgency } from '../../core/model/data';
+import { URGENCIES, URGENCY_LABELS, URGENCY_LEGEND, Urgency } from '../../core/model/data';
 import { DialogService } from '../../core/services/dialog.service';
 import { ActionRef, collectActions, collectDefects, missingRequired } from '../../core/templates/template-engine';
 import { VisitStore } from './visit-store';
@@ -17,6 +17,7 @@ export class SynthesePage {
   readonly store = inject(VisitStore);
   private readonly dialogs = inject(DialogService);
   readonly labels = URGENCY_LABELS;
+  readonly urgencyLegend = URGENCY_LEGEND;
 
   private readonly answers = computed(() => [...this.store.answers().values()]);
 

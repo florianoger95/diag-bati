@@ -169,16 +169,23 @@ describe('buildReport', () => {
 
   it('synthétise les désordres et les travaux par échéance, sécurité en premier', () => {
     const iDefects = all.indexOf('SYNTHÈSE DES DÉSORDRES');
-    expect(all[iDefects + 1]).toBe('Court terme');
-    expect(all[iDefects + 2]).toContain('Bâtiment A — État des tuiles : Tuiles poreuses');
+    // + 1 : définition des urgences
+    expect(all[iDefects + 2]).toBe('Court terme');
+    expect(all[iDefects + 3]).toContain('Bâtiment A — État des tuiles : Tuiles poreuses');
     const iWorks = all.indexOf('RÉCAPITULATIF DES TRAVAUX ET ÉCHÉANCES');
-    expect(all.slice(iWorks + 1, iWorks + 7)).toEqual([
+    expect(all.slice(iWorks + 2, iWorks + 8)).toEqual([
       'Mesures de sécurité à court terme', 'Surveiller la marquise (immédiat) — Bâtiment A',
       'Court terme', 'Reprendre le chéneau* — Bâtiment A',
       'Moyen terme', 'Démousser la couverture — Bâtiment A',
     ]);
     const none = buildReport(input({ answers: [] }));
     expect(texts(none.blocks)).toContain('Aucun désordre relevé.');
+  });
+
+  it('rappelle la définition des urgences sous la synthèse des désordres et le récapitulatif des travaux', () => {
+    const legend = 'Immédiat : action dans les prochaines semaines · Court terme : à prévoir dans le cadre des travaux · '
+      + 'Moyen terme : à faire dans les 5 ans · À surveiller : action si l’état de dégradation évolue';
+    expect(all.filter((t) => t === legend).length).toBe(2);
   });
 
   it('lexique : astérisques, note de couverture et annexe ; rien sans annexe importée', () => {

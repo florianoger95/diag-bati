@@ -118,8 +118,10 @@ async function extractPage(bytes: Uint8Array, pageIndex: number): Promise<Blob |
     const target = await PDFDocument.create();
     const [page] = await target.copyPages(source, [pageIndex]);
     target.addPage(page);
-    const saved = await target.save();
-    return new Blob([saved.buffer as ArrayBuffer], { type: 'application/pdf' });
+    // une page tournée (/Rotate) est remise à plat : même orientation à l'écran et dans le rapport
+    const { normalizeRotation } = await import('./plan-transform');
+    const saved = await normalizeRotation(await target.save());
+    return new Blob([saved.slice().buffer as ArrayBuffer], { type: 'application/pdf' });
   } catch {
     return undefined;
   }

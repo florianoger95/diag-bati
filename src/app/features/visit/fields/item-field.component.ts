@@ -7,6 +7,7 @@ import {
   OTHER_VALUE,
   URGENCIES,
   URGENCY_LABELS,
+  URGENCY_LEGEND,
   Urgency,
 } from '../../../core/model/data';
 import { ResolvedItem } from '../../../core/model/template';
@@ -66,6 +67,7 @@ export class ItemFieldComponent {
 
   readonly urgencies = URGENCIES;
   readonly urgencyLabels = URGENCY_LABELS;
+  readonly urgencyLegend = URGENCY_LEGEND;
   readonly OTHER = OTHER_VALUE;
   readonly showHelp = signal(false);
   readonly defectOpen = signal(false);

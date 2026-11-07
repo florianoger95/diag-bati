@@ -18,7 +18,10 @@ import { AnnotationHistory } from '../../../core/annotation/history';
 import { renderShapes } from '../../../core/annotation/render-shapes';
 import {
   DEFAULT_COLORS,
+  duplicate,
   hitTest,
+  nextBadge,
+  STAMPS,
   LEGEND_SUGGESTIONS,
   Point,
   Shape,
@@ -28,6 +31,7 @@ import {
   TEXT_SIZES,
   translate,
 } from '../../../core/annotation/shapes';
+import { PlanTransform } from '../../../core/media/plan-transform';
 import { Photo } from '../../../core/model/data';
 import { DialogService } from '../../../core/services/dialog.service';
 import { VisitStore } from '../visit-store';
@@ -37,12 +41,14 @@ export type Tool = 'select' | ShapeKind;
 const TOOLS: { id: Tool; label: string; icon: string }[] = [
   { id: 'select', label: 'Sélectionner / déplacer', icon: '☝' },
   { id: 'arrow', label: 'Flèche', icon: '↗' },
+  { id: 'line', label: 'Trait droit', icon: '╱' },
   { id: 'rect', label: 'Rectangle', icon: '▭' },
   { id: 'ellipse', label: 'Ellipse', icon: '◯' },
   { id: 'free', label: 'Trait libre', icon: '✎' },
   { id: 'zone', label: 'Zone', icon: '▨' },
   { id: 'text', label: 'Texte', icon: 'T' },
   { id: 'badge', label: 'Pastille numérotée', icon: '①' },
+  { id: 'stamp', label: 'Tampon', icon: '◎' },
 ];
 
 const MIN_SIZE = 0.01;
@@ -85,6 +91,10 @@ export class AnnotatorPage {
   readonly zoneFill = signal<'hatch' | 'tint'>('hatch');
   /** Pastille : 'auto' (numéro suivant) ou id d'une photo de la visite. */
   readonly badgeTarget = signal<string>('auto');
+  /** Pastilles libres : 1, 2, 3… ou A, B, C… */
+  readonly badgeMode = signal<'number' | 'letter'>('number');
+  readonly stamps = STAMPS;
+  readonly stampText = signal(STAMPS[0]);
 
   readonly shapes = signal<Shape[]>([]);
   readonly draft = signal<Shape | null>(null);
@@ -93,6 +103,12 @@ export class AnnotatorPage {
   readonly canUndo = signal(false);
   readonly canRedo = signal(false);
   readonly caption = signal('');
+  /** Pivoter / recadrer : seulement pour un plan pas encore annoté. */
+  readonly canAdjust = computed(() => this.photo()?.kind === 'plan' && this.shapes().length === 0 && !this.readonly());
+  readonly cropMode = signal(false);
+  readonly cropRect = signal<{ x: number; y: number; w: number; h: number } | null>(null);
+  readonly adjusting = signal(false);
+  private cropStart: Point | null = null;
 
   readonly palette = computed(() => {
     const legend = this.store.project()?.legend ?? [];
@@ -109,9 +125,10 @@ export class AnnotatorPage {
     return legend.filter((l) => used.has(l.color.toLowerCase()));
   });
   readonly otherPhotos = computed(() => this.store.photos().filter((p) => p.id !== this.photoId() && p.kind === 'photo'));
-  readonly nextBadge = computed(() =>
-    this.shapes().reduce((max, s) => (s.kind === 'badge' && !s.photoId ? Math.max(max, s.n) : max), 0) + 1,
-  );
+  readonly nextBadge = computed(() => {
+    const next = nextBadge(this.shapes(), this.badgeMode());
+    return next.label ?? String(next.n);
+  });
   readonly frameTransform = computed(() => {
     const { x, y } = this.pan();
     return `translate(${x}px, ${y}px) scale(${this.scale()})`;
@@ -121,6 +138,7 @@ export class AnnotatorPage {
   private readonly canvas = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
 
   private history = new AnnotationHistory([]);
+  /** Photo affichée : id et image (un plan pivoté ou recadré change d'image). */
   private loadedId: string | null = null;
   private saveTimer?: ReturnType<typeof setTimeout>;
   private captionTimer?: ReturnType<typeof setTimeout>;
@@ -138,7 +156,7 @@ export class AnnotatorPage {
     // chargement de la photo (et rechargement si son id change après copie à l'écriture)
     effect(() => {
       const photo = this.photo();
-      if (!photo || photo.id === this.loadedId) return;
+      if (!photo || `${photo.id}|${photo.blobId}` === this.loadedId) return;
       untracked(() => void this.load(photo));
     });
     // redessin dès que l'état change
@@ -148,6 +166,7 @@ export class AnnotatorPage {
       this.zonePoints();
       this.selectedId();
       this.frame();
+      this.cropRect();
       untracked(() => this.requestRender());
     });
     afterNextRender(() => {
@@ -166,7 +185,7 @@ export class AnnotatorPage {
   }
 
   private async load(photo: Photo): Promise<void> {
-    this.loadedId = photo.id;
+    this.loadedId = `${photo.id}|${photo.blobId}`;
     this.history = new AnnotationHistory(photo.annotations);
     this.shapes.set(photo.annotations);
     this.caption.set(photo.caption);
@@ -220,6 +239,21 @@ export class AnnotatorPage {
     ctx.clearRect(0, 0, w, h);
     const draft = this.draft();
     renderShapes(ctx, draft ? [...this.shapes(), draft] : this.shapes(), w, h, { selectedId: this.selectedId() });
+    const crop = this.cropRect();
+    if (crop) {
+      // zone conservée claire, le reste assombri
+      ctx.save();
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.beginPath();
+      ctx.rect(0, 0, w, h);
+      ctx.rect(crop.x * w, crop.y * h, crop.w * w, crop.h * h);
+      ctx.fill('evenodd');
+      ctx.strokeStyle = '#ff9e1b';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 5]);
+      ctx.strokeRect(crop.x * w, crop.y * h, crop.w * w, crop.h * h);
+      ctx.restore();
+    }
     const zone = this.zonePoints();
     if (zone.length) {
       ctx.save();
@@ -262,7 +296,8 @@ export class AnnotatorPage {
       return;
     }
     if (this.pointers.size > 2 || this.readonly()) return;
-    this.begin(this.normalized(e));
+    if (this.cropMode()) this.cropStart = this.normalized(e);
+    else this.begin(this.normalized(e));
   }
 
   onPointerMove(e: PointerEvent): void {
@@ -276,7 +311,8 @@ export class AnnotatorPage {
       this.pan.set({ x: this.gesture.pan.x + mid.x - this.gesture.mid.x, y: this.gesture.pan.y + mid.y - this.gesture.mid.y });
       return;
     }
-    if (this.pointers.size === 1 && !this.gesture && !this.readonly()) this.move(this.normalized(e));
+    if (this.pointers.size === 1 && !this.gesture && this.cropStart) this.cropTo(this.normalized(e));
+    else if (this.pointers.size === 1 && !this.gesture && !this.readonly()) this.move(this.normalized(e));
   }
 
   onPointerUp(e: PointerEvent): void {
@@ -286,7 +322,8 @@ export class AnnotatorPage {
       if (this.pointers.size === 0) this.gesture = null;
       return;
     }
-    if (this.pointers.size === 0 && !this.readonly()) this.end(this.normalized(e));
+    if (this.cropStart) this.cropStart = null;
+    else if (this.pointers.size === 0 && !this.readonly()) this.end(this.normalized(e));
   }
 
   private cancelDraft(): void {
@@ -321,6 +358,9 @@ export class AnnotatorPage {
         return;
       case 'badge':
         this.addBadge(p);
+        return;
+      case 'stamp':
+        this.commit([...this.shapes(), { id: crypto.randomUUID(), kind: 'stamp', x: p[0], y: p[1], text: this.stampText(), size: this.textSize() * 0.8, color: this.color() }]);
         return;
       default:
         this.start = p;
@@ -373,7 +413,8 @@ export class AnnotatorPage {
 
   private bigEnough(s: Shape): boolean {
     switch (s.kind) {
-      case 'arrow': return Math.hypot(s.x2 - s.x1, s.y2 - s.y1) > MIN_SIZE;
+      case 'arrow':
+      case 'line': return Math.hypot(s.x2 - s.x1, s.y2 - s.y1) > MIN_SIZE;
       case 'rect': return Math.abs(s.w) > MIN_SIZE && Math.abs(s.h) > MIN_SIZE;
       case 'ellipse': return s.rx > MIN_SIZE / 2 && s.ry > MIN_SIZE / 2;
       default: return true;
@@ -385,6 +426,8 @@ export class AnnotatorPage {
     switch (tool) {
       case 'arrow':
         return { ...base, kind: 'arrow', x1: a[0], y1: a[1], x2: b[0], y2: b[1] };
+      case 'line':
+        return { ...base, kind: 'line', x1: a[0], y1: a[1], x2: b[0], y2: b[1] };
       case 'rect':
         return { ...base, kind: 'rect', x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), w: Math.abs(b[0] - a[0]), h: Math.abs(b[1] - a[1]) };
       case 'ellipse':
@@ -427,13 +470,59 @@ export class AnnotatorPage {
   private addBadge(p: Point): void {
     const target = this.badgeTarget();
     const linked = target !== 'auto' ? this.store.photo(target) : undefined;
+    const next = linked ? { n: linked.number } : nextBadge(this.shapes(), this.badgeMode());
     const badge: Shape = {
       id: crypto.randomUUID(), kind: 'badge', x: p[0], y: p[1], size: this.textSize() * 0.75, color: this.color(),
-      n: linked?.number ?? this.nextBadge(),
+      ...next,
       ...(linked ? { photoId: linked.id } : {}),
     };
     this.commit([...this.shapes(), badge]);
     if (linked) this.badgeTarget.set('auto');
+  }
+
+  // ---- pivoter / recadrer un plan (avant annotation) ------------------------------
+
+  private cropTo(p: Point): void {
+    const a = this.cropStart!;
+    const clamp = (v: number) => Math.min(1, Math.max(0, v));
+    const [x1, y1, x2, y2] = [clamp(a[0]), clamp(a[1]), clamp(p[0]), clamp(p[1])];
+    this.cropRect.set({ x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) });
+  }
+
+  toggleCrop(): void {
+    this.cropMode.update((v) => !v);
+    this.cropRect.set(null);
+  }
+
+  async rotate(angle: 90 | 270): Promise<void> {
+    await this.adjust({ rotate: angle });
+  }
+
+  async applyCrop(): Promise<void> {
+    const crop = this.cropRect();
+    if (!crop || crop.w < 0.02 || crop.h < 0.02) return;
+    await this.adjust({ crop });
+    this.cropMode.set(false);
+    this.cropRect.set(null);
+  }
+
+  private async adjust(transform: PlanTransform): Promise<void> {
+    if (!this.canAdjust() || this.adjusting()) return;
+    this.adjusting.set(true);
+    try {
+      await this.store.adjustPlan(this.photoId(), transform);
+    } finally {
+      this.adjusting.set(false);
+    }
+  }
+
+  /** Copier/coller : copie décalée de la forme sélectionnée, qui devient la sélection. */
+  duplicateSelected(): void {
+    const selected = this.shapes().find((s) => s.id === this.selectedId());
+    if (!selected) return;
+    const copy = duplicate(selected, crypto.randomUUID());
+    this.commit([...this.shapes(), copy]);
+    this.selectedId.set(copy.id);
   }
 
   // ---- historique et enregistrement ----------------------------------------------
@@ -498,7 +587,7 @@ export class AnnotatorPage {
     this.store.pendingWrites.update((n) => Math.max(0, n - 1));
     // copie à l'écriture (photo d'une visite précédente) : nouvel identifiant
     if (updated && updated.id !== this.photoId()) {
-      this.loadedId = updated.id;
+      this.loadedId = `${updated.id}|${updated.blobId}`;
       await this.router.navigate(this.store.link('photos', updated.id), { replaceUrl: true });
     }
   }

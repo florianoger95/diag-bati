@@ -141,6 +141,25 @@ describe('photos', () => {
     expect(await read?.vector?.text()).toBe('%PDF');
   });
 
+  it('remplace l’image d’un plan pivoté ou recadré tant qu’il n’est pas annoté', async () => {
+    const { visit } = await setup();
+    const plan = await repo.addPhoto(visit.id, photo({ kind: 'plan', vector: new Blob(['%PDF-avant']) }));
+    const adjusted = await repo.replacePhotoImage(visit.id, plan.id, {
+      image: new Blob(['PIVOTÉ'], { type: 'image/jpeg' }), thumb: new Blob(['t']), vector: new Blob(['%PDF-après']), width: 1200, height: 1600,
+    });
+    expect(adjusted.id).toBe(plan.id);
+    expect(adjusted.blobId).not.toBe(plan.blobId);
+    const blob = await repo.getBlob(adjusted.blobId);
+    expect([blob?.width, blob?.height]).toEqual([1200, 1600]);
+    expect(await blob?.vector?.text()).toBe('%PDF-après');
+    expect(await db.blobs.count()).toBe(1); // ancien binaire supprimé
+
+    await repo.updatePhoto(visit.id, plan.id, { annotations: [{ id: 'r', kind: 'rect', x: 0, y: 0, w: 0.1, h: 0.1, color: '#f00', width: 0.005 }] });
+    await expect(repo.replacePhotoImage(visit.id, plan.id, {
+      image: new Blob(['x']), thumb: new Blob(['x']), width: 1, height: 1,
+    })).rejects.toThrow(/annot/);
+  });
+
   it('enregistre la légende des couleurs du dossier', async () => {
     const { project } = await setup();
     await repo.setLegend(project.id, [{ color: '#0070c0', label: "Présence d'eau liquide" }]);

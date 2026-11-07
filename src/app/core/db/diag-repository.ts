@@ -564,6 +564,33 @@ export class DiagRepository {
     });
   }
 
+  /**
+   * Remplace l'image d'un plan (pivoté ou recadré à l'import). Refusé dès qu'il est annoté,
+   * ou s'il vient d'une visite précédente (son image appartient aussi à cette visite).
+   */
+  async replacePhotoImage(visitId: string, photoId: string, data: Omit<NewPhoto, 'instanceId' | 'itemId' | 'kind' | 'caption'>): Promise<Photo> {
+    const [image, thumb, vector] = await Promise.all([
+      this.storable(data.image), this.storable(data.thumb), data.vector ? this.storable(data.vector) : Promise.resolve(undefined),
+    ]);
+    return this.mutateVisit(visitId, async (visit) => {
+      const { db } = this;
+      const photo = await db.photos.get(photoId);
+      if (!photo || photo.projectId !== visit.projectId) throw new NotFoundError('Photo');
+      if (photo.annotations.length) throw new Error('Ce plan est déjà annoté : il ne peut plus être pivoté ni recadré.');
+      if (photo.addedInRevision !== visit.revision) throw new Error('Ce plan vient d’une visite précédente : il ne peut plus être pivoté ni recadré.');
+      const blob = {
+        id: this.deps.uuid(), image, thumb, width: data.width, height: data.height,
+        byteSize: data.image.size + data.thumb.size + (data.vector?.size ?? 0),
+        ...(vector ? { vector } : {}),
+      } as StoredBlob;
+      await db.blobs.add(blob);
+      const updated: Photo = { ...photo, blobId: blob.id, updatedAt: this.deps.now() };
+      await db.photos.put(updated);
+      if ((await db.photos.where('blobId').equals(photo.blobId).count()) === 0) await db.blobs.delete(photo.blobId);
+      return updated;
+    });
+  }
+
   deletePhoto(visitId: string, photoId: string): Promise<void> {
     return this.mutateVisit(visitId, async (visit) => {
       const { db } = this;
