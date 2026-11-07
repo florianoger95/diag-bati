@@ -123,6 +123,30 @@ export function nextBadge(shapes: readonly Shape[], mode: 'number' | 'letter'): 
   return { n: 0, label: letter(i) };
 }
 
+/**
+ * Pastilles reliées à une photo : numéro courant de la photo (numérotation dans l'ordre du rapport).
+ * Une photo disparue garde le dernier numéro enregistré. Renvoie le même tableau s'il n'y a rien à changer.
+ */
+export function withPhotoNumbers(shapes: readonly Shape[], numbers: ReadonlyMap<string, number>): readonly Shape[] {
+  let changed = false;
+  const out = shapes.map((s) => {
+    if (s.kind !== 'badge' || !s.photoId) return s;
+    const n = numbers.get(s.photoId);
+    if (n === undefined || n === s.n) return s;
+    changed = true;
+    return { ...s, n };
+  });
+  return changed ? out : shapes;
+}
+
+/** Signature des numéros affichés par les pastilles reliées (clé de cache des vignettes). */
+export function linkedNumbersKey(shapes: readonly Shape[], numbers: ReadonlyMap<string, number>): string {
+  return shapes
+    .filter((s): s is BadgeShape => s.kind === 'badge' && !!s.photoId)
+    .map((s) => `${s.photoId}:${numbers.get(s.photoId!) ?? ''}`)
+    .join(',');
+}
+
 /** Forme touchée au point (x, y) normalisé, la plus récente d'abord. `tolerance` en fraction de largeur. */
 export function hitTest(shapes: Shape[], x: number, y: number, tolerance = 0.02, aspect = 1): Shape | undefined {
   for (let i = shapes.length - 1; i >= 0; i--) {

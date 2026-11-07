@@ -1,7 +1,7 @@
 // Modèle de rapport intermédiaire, commun au PDF et au DOCX (docs/SPEC.md §6).
 import { LegendEntry, Photo } from '../model/data';
 
-export type BlockId = 'cover' | 'body' | 'conclusion' | 'defects' | 'works' | 'lexicon';
+export type BlockId = 'cover' | 'body' | 'conclusion' | 'defects' | 'works' | 'probes' | 'lexicon';
 
 export interface ReportConfig {
   page: { size: 'A4'; marginsMm: [number, number, number, number] };
@@ -15,7 +15,7 @@ export interface ReportConfig {
   emptyInstance: 'omit' | 'show';
   masterPlanItem?: string;
   lexicon: { mark: 'every' | 'first'; annex: 'all' | 'used' };
-  headings: { conclusion: string; defects: string; works: string; safety: string; maintenance: string; lexicon: string };
+  headings: { conclusion: string; defects: string; works: string; safety: string; maintenance: string; lexicon: string; probes?: string };
   footer: string;
 }
 
@@ -60,6 +60,8 @@ export interface ReportModel {
   blocks: Block[];
   /** Photos référencées (à préparer pour le rendu). */
   photoIds: string[];
+  /** Numéro de chaque image dans le rapport (pastilles reliées aux photos). */
+  photoNumbers: Record<string, number>;
   /** Termes du lexique marqués d'un astérisque. */
   lexiconTerms: string[];
   fileBaseName: string;

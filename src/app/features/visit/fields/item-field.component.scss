@@ -33,4 +33,9 @@
 .snippet { font-size: 15px; min-height: 40px; padding: 4px 12px; }
 .defect-choices { align-items: center; }
 .urgency-legend { flex-basis: 100%; margin: 0; font-size: 15px; }
+/* repère « À sonder » : bleu foncé, distinct du rouge des désordres et du violet des mises à jour */
+:host(.probe:not(.defect):not(.revised)) { border-color: #1f4e79; border-left-width: 8px; }
+.badge-probe { background: #1f4e79; color: #fff; }
+.badge-probe-done { background: transparent; color: #1f4e79; border: 1px dashed #1f4e79; }
+.probe-btn { min-height: 44px; font-size: 16px; padding: 4px 14px; }
 .photo-placeholder { display: flex; gap: 12px; align-items: center; }

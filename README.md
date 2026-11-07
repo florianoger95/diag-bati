@@ -9,6 +9,17 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
 
 - **Lot 3** : rapports PDF et Word, lexique avec astérisques automatiques, réglages du cabinet.
 - **Lot 4** : mises à jour successives, sauvegarde et restauration, modèles importés, indicateur « Prête hors ligne ».
+- **Lot 5a** : retours terrain sur l'annotation, les plans et les définitions des urgences.
+- **Lot 5b** : repère « À sonder », liste des sondages, numéros des photos dans l'ordre du rapport.
+
+## Repère « À sonder »
+
+- Le bouton **🔍 À sonder**, à côté de « ⚠ Désordre », marque l'observation d'un item. Il se cumule avec un désordre.
+- Le filtre **« À sonder seulement »** de la fiche n'affiche que ces items. La synthèse les liste sous « Sondages à réaliser ».
+- Dans le rapport :
+  - « — À sonder » s'ajoute à la ligne de l'item ;
+  - la liste **SONDAGES À RÉALISER** suit le récapitulatif des travaux.
+- Dans une mise à jour, le repère est repris. Une fois le sondage fait, retirez-le : l'item affiche « Était à sonder » et la synthèse le marque « Levé ».
 
 ## Mises à jour (après curage, sondages…)
 
@@ -72,6 +83,9 @@ Ouvrir l'app connecté jusqu'à voir **« Prête hors ligne ✓ »** en bas de l
   - **Pivoter et recadrer un plan** : à l'import, tant qu'il n'est pas annoté (⟲ ⟳ ✂ au-dessus des outils).
     L'image et la page PDF vectorielle sont transformées ensemble.
   - Les vignettes des fiches montrent les annotations (croquis compris).
+- **Numéros** : chaque nature a sa suite (Photo 1…, Plan 1…, Croquis 1…), dans l'ordre où les images paraissent dans le rapport.
+  - Déplacer une fiche, ajouter ou supprimer une photo renumérote aussitôt.
+  - Les pastilles reliées à une photo suivent son numéro.
   - À la première utilisation d'une couleur, l'app propose de la nommer : ce nom alimente la légende des plans.
 
 ## Installer sur l'iPad

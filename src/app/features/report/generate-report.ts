@@ -1,4 +1,5 @@
 // Génération du rapport dans l'app : données de la visite + fichiers du cabinet → PDF ou DOCX.
+import { withPhotoNumbers } from '../../core/annotation/shapes';
 import { StoredAsset } from '../../core/db/diag-repository';
 import { fitSize } from '../../core/media/image-compress';
 import { openPdf } from '../../core/media/pdf-plan';
@@ -67,7 +68,9 @@ export async function generateReport(format: 'pdf' | 'docx', ctx: GenerateContex
   });
 
   // dimensions et binaires des images utilisées (les Blob ne sont lus qu'au moment du rendu)
-  const photos = new Map(ctx.photos.map((p) => [p.id, p]));
+  // pastilles reliées à une photo : numéro de la photo dans ce rapport
+  const numbers = new Map(Object.entries(model.photoNumbers));
+  const photos = new Map(ctx.photos.map((p) => [p.id, { ...p, annotations: withPhotoNumbers(p.annotations, numbers) as Photo['annotations'] }]));
   const blobs = new Map<string, StoredBlob>();
   for (const id of model.photoIds) {
     const photo = photos.get(id);
@@ -83,7 +86,7 @@ export async function generateReport(format: 'pdf' | 'docx', ctx: GenerateContex
   const raster = async (id: string) => {
     const photo = photos.get(id)!;
     const blob = blobs.get(id);
-    if (!blob) throw new Error(`Image n° ${photo?.number ?? '?'} introuvable.`);
+    if (!blob) throw new Error(`Image n° ${numbers.get(id) ?? photo?.number ?? '?'} introuvable.`);
     return flattenImage(blob.image, photo.annotations, target(photo), quality(photo));
   };
   const logo = await logoOf(ctx.logo);

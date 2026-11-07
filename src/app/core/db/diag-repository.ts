@@ -2,6 +2,7 @@ import { Shape } from '../annotation/shapes';
 import {
   Answer,
   AnswerPatch,
+  applyAnswerPatch,
   LegendEntry,
   Photo,
   Project,
@@ -312,7 +313,7 @@ export class DiagRepository {
       const answers = (await db.answers.where('visitId').equals(latest.id).toArray()).map((a): Answer => {
         const copy: Answer = {
           ...structuredClone(a), visitId: visit.id,
-          inherited: { ...state(a), changedInRevision: a.changedInRevision },
+          inherited: { ...state(a), changedInRevision: a.changedInRevision, ...(a.probe ? { probe: true as const } : {}) },
         };
         const baseline = latest.revision === 0 ? state(a) : a.baseline;
         if (baseline) copy.baseline = baseline;
@@ -339,6 +340,7 @@ export class DiagRepository {
       const { changedInRevision, ...state } = answer.inherited;
       const reverted: Answer = { ...answer, ...structuredClone(state), changedInRevision, updatedAt: this.deps.now() };
       if (state.other === undefined) delete reverted.other;
+      if (!state.probe) delete reverted.probe;
       await this.db.answers.put(reverted);
       return reverted;
     });
@@ -648,11 +650,7 @@ export class DiagRepository {
       const next: Answer = existing ?? {
         visitId, instanceId, itemId, value: null, observation: '', changedInRevision: visit.revision, updatedAt: 0,
       };
-      if ('value' in patch) next.value = patch.value ?? null;
-      if ('other' in patch) next.other = patch.other;
-      if ('observation' in patch) next.observation = patch.observation ?? '';
-      if (patch.defect === null) delete next.defect;
-      else if (patch.defect) next.defect = patch.defect;
+      applyAnswerPatch(next, patch);
       next.changedInRevision = visit.revision;
       next.updatedAt = this.deps.now();
       await this.db.answers.put(next);

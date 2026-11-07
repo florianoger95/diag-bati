@@ -522,6 +522,40 @@ Ordre de grandeur : 120 photos ≈ 60 Mo par dossier.
 | 3 | `buildReport` + PDF + DOCX · lexique (astérisques automatiques, soulignement à la saisie, annexe) · Réglages cabinet (logo, coordonnées) · import de la police et de l'annexe | PDF et DOCX façon rapport d'exemple en mode avion, astérisques et annexe compris |
 | 4 | Mises à jour successives (diff violet, historique des témoins) · sauvegarde / restauration `.diag.zip` · finitions | 2 mises à jour sur un dossier, puis restauration sur un iPad vierge |
 
+| 5a | Retours terrain : légende lisible, vignettes annotées, plan importé en image, pivoter / recadrer un plan non annoté, trait droit, pastilles A-B-C, tampons, dupliquer, définitions des urgences | Plan pivoté, recadré et annoté avec les nouveaux outils |
+| 5b | Repère « À sonder » · liste des sondages · numéros des photos dans l'ordre du rapport | Item « à sonder » retrouvé dans la mise à jour, puis levé ; numéros recalculés après déplacement d'une fiche |
+| 5c | Plusieurs observations par item · localisation des photos sur le plan de référence de la fiche | — |
+
+### 9.1 Lot 5b — détail
+
+**Repère « À sonder »** (réponse du 07/11/2026 : « simple repère sur l'observation »)
+- `Answer.probe?: true` ; `AnswerPatch.probe?: boolean` (`false` retire le repère). Cumulable avec un désordre.
+- Bouton « 🔍 À sonder » à côté de « ⚠ Désordre », sur les items qui ont une observation (pas sur les rubriques
+  de synthèse). Pastille « À sonder » dans l'en-tête de l'item.
+- Mise à jour : le repère est repris avec la réponse, et aussi gardé dans `inherited.probe`.
+  Une fois retiré, l'item affiche « Était à sonder » ; « Annuler la modification » le rétablit.
+- Filtre « À sonder seulement » sur chaque fiche, dès qu'un item de la fiche porte ou portait le repère.
+- Synthèse de la visite : carte « Sondages à réaliser », avec un lien vers chaque item. En mise à jour,
+  les repères levés y restent, marqués « Levé ».
+- Rapport :
+  - « — À sonder » après la ligne de l'item ;
+  - bloc `probes` (« SONDAGES À RÉALISER », après le récapitulatif des travaux) qui liste
+    « Fiche — Item : observation (photos n) » ;
+  - le bloc est omis s'il n'y a aucun repère.
+
+**Numéros des photos dans l'ordre du rapport** (réponse du 07/11/2026 : les numéros peuvent changer à l'écran)
+- Le numéro affiché n'est plus le numéro de création (`Photo.number`, gardé comme ordre de secours) :
+  il est calculé par `photoNumbers()` (pur, `core/report/photo-numbers.ts`), dans l'ordre où les images apparaissent dans le rapport.
+  1. Page de garde : plan de masse.
+  2. Corps : sections du modèle, fiches dans leur ordre ; dans chaque fiche, les photos des items, puis les plans et croquis.
+  3. Reportage général, puis plans de la conclusion.
+  4. Les images non imprimées viennent ensuite, par numéro de création.
+- Une suite par nature : Photo 1…n, Plan 1…m, Croquis 1…k.
+- `buildReport` numérote avec cette même fonction. Le test vérifie que les numéros se suivent dans l'ordre des blocs.
+- Les pastilles reliées à une photo (`BadgeShape.photoId`) affichent son numéro courant à l'écran, sur les vignettes et dans le rapport.
+  `withPhotoNumbers(shapes, numbers)` les réécrit avant le dessin.
+- Déplacer une fiche, ajouter ou supprimer une photo renumérote aussitôt.
+
 ```
 src/app/
   core/db/            dexie.ts, project.repository.ts, revision.service.ts

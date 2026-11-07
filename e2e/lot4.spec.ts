@@ -1,23 +1,7 @@
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { expect, Page, test } from '@playwright/test';
-import JSZip from 'jszip';
-import { createProject, makeJpeg, openSheet, waitForOfflineReady } from './helpers';
-
-async function docxXml(page: Page): Promise<string> {
-  await page.getByRole('button', { name: '📝 Générer le Word (.docx)' }).click();
-  const card = page.getByRole('region', { name: 'Rapport docx' });
-  await expect(card).toBeVisible({ timeout: 60_000 });
-  const href = await card.getByRole('link', { name: 'Ouvrir' }).getAttribute('href');
-  const base64 = await page.evaluate(async (url) => {
-    const bytes = new Uint8Array(await (await fetch(url!)).arrayBuffer());
-    let s = '';
-    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-    return btoa(s);
-  }, href);
-  const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'));
-  return zip.file('word/document.xml')!.async('string');
-}
+import { expect, test } from '@playwright/test';
+import { createProject, docxXml, makeJpeg, openSheet, waitForOfflineReady } from './helpers';
 
 test('mode avion : mise à jour après curage, repère violet, annulation et rapport révisé', async ({ page, context }) => {
   test.setTimeout(120_000);

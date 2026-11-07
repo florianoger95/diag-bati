@@ -85,6 +85,35 @@ describe('mises à jour successives', () => {
     expect(type.changedInRevision).toBe(1);
   });
 
+  it('repère « À sonder » : posé, retiré, repris dans la mise à jour et rétabli par l’annulation', async () => {
+    const { project, visit, bat } = await initialVisit();
+    let a = await repo.saveAnswer(visit.id, bat.id, 'couv-etat', { probe: true, defect: { urgency: 'short' } });
+    expect(a).toMatchObject({ probe: true, defect: { urgency: 'short' }, observation: 'Tuiles poreuses.' });
+    a = await repo.saveAnswer(visit.id, bat.id, 'couv-etat', { probe: false });
+    expect(a.probe).toBeUndefined();
+    expect(a.defect).toEqual({ urgency: 'short' });
+    await repo.saveAnswer(visit.id, bat.id, 'couv-etat', { probe: true });
+    await repo.closeVisit(visit.id);
+    const rev = await repo.createRevision(project.id, 'suite aux sondages');
+    a = (await repo.getAnswers(rev.id)).find((x) => x.itemId === 'couv-etat')!;
+    expect(a.probe).toBe(true);
+    expect(a.inherited?.probe).toBe(true);
+    a = await repo.saveAnswer(rev.id, bat.id, 'couv-etat', { probe: false, observation: 'Sondé : lattis sain.' });
+    expect(a.probe).toBeUndefined();
+    expect(a.inherited?.probe).toBe(true);
+    const reverted = await repo.revertAnswer(rev.id, bat.id, 'couv-etat');
+    expect(reverted).toMatchObject({ probe: true, observation: 'Tuiles poreuses.' });
+  });
+
+  it('l’annulation retire un repère posé dans la mise à jour', async () => {
+    const { project, visit, bat } = await initialVisit();
+    await repo.closeVisit(visit.id);
+    const rev = await repo.createRevision(project.id, '');
+    await repo.saveAnswer(rev.id, bat.id, 'couv-etat', { probe: true });
+    const reverted = await repo.revertAnswer(rev.id, bat.id, 'couv-etat');
+    expect(reverted?.probe).toBeUndefined();
+  });
+
   it('les photos restent visibles dans la mise à jour', async () => {
     const { project, visit, bat } = await initialVisit();
     await repo.addPhoto(visit.id, {

@@ -2,8 +2,9 @@
 import { usedColors } from '../annotation/shapes';
 import { ActionRow, Answer, MeasureRow, OTHER_VALUE, Photo, Project, URGENCIES, URGENCY_LABELS, URGENCY_LEGEND, Urgency, Visit } from '../model/data';
 import { ResolvedItem, ResolvedSection, ResolvedTemplate } from '../model/template';
-import { answerKey, collectActions, collectDefects, hasValue, isRevised, sectionItems } from '../templates/template-engine';
+import { answerKey, collectActions, collectDefects, collectProbes, hasValue, isRevised } from '../templates/template-engine';
 import { applyLexicon, CompiledLexicon, LexiconState, stripExclusions } from './lexicon';
+import { findMasterPlan, photoNumbers } from './photo-numbers';
 import { diffWords } from './text-diff';
 import { Block, FirmInfo, ReportConfig, ReportModel, ReportPhoto, Run, text } from './report-model';
 
@@ -89,10 +90,13 @@ class Builder {
   private readonly lexState: LexiconState;
   private readonly answers: Map<string, Answer>;
   private readonly photosByTarget = new Map<string, Photo[]>();
+  /** Numéros dans l'ordre des pages (même calcul que l'affichage dans l'app). */
+  readonly numbers: Map<string, number>;
 
   constructor(readonly input: ReportInput) {
     this.lexState = { mode: input.config.lexicon.mark, seen: new Set() };
     this.answers = new Map(input.answers.map((a) => [answerKey(a.instanceId, a.itemId), a]));
+    this.numbers = photoNumbers(input.template, input.visit, input.photos, input.config);
     for (const p of [...input.photos].sort((a, b) => a.order - b.order || a.number - b.number)) {
       const key = answerKey(p.instanceId ?? '', p.itemId ?? '');
       this.photosByTarget.set(key, [...(this.photosByTarget.get(key) ?? []), p]);
@@ -135,9 +139,18 @@ class Builder {
     return this.photosByTarget.get(answerKey(instanceId ?? '', itemId ?? '')) ?? [];
   }
 
+  number(p: Photo): number {
+    return this.numbers.get(p.id) ?? p.number;
+  }
+
+  /** « photos 1, 2 » */
+  photoRefs(photos: Photo[]): string {
+    return `photo${photos.length > 1 ? 's' : ''} ${photos.map((p) => this.number(p)).join(', ')}`;
+  }
+
   reportPhoto(p: Photo, ref?: string): ReportPhoto {
     this.photoIds.add(p.id);
-    return { photoId: p.id, number: p.number, kind: p.kind, caption: this.lex(p.caption.trim()), ...(ref ? { ref } : {}) };
+    return { photoId: p.id, number: this.number(p), kind: p.kind, caption: this.lex(p.caption.trim()), ...(ref ? { ref } : {}) };
   }
 
   planBlock(p: Photo): Block {
@@ -222,7 +235,7 @@ function itemParagraph(b: Builder, instanceId: string, item: ResolvedItem): Run[
   const photos = b.photosOf(instanceId, item.id).filter((p) => p.kind === 'photo');
   const value = item.type === 'photo' ? '' : item.history && item.type === 'measures' ? measureHistory(b, instanceId, item) : formatAnswer(item, answer);
   const observation = (answer?.observation ?? '').trim();
-  if (!value && !observation && !answer?.defect && !photos.length) return null;
+  if (!value && !observation && !answer?.defect && !answer?.probe && !photos.length) return null;
   const reference = b.reference(answer);
   const refValue = reference?.ref ? formatAnswer(item, reference.ref) : undefined;
   const runs: Run[] = [text(`- ${item.label}${value || observation ? ' : ' : ''}`)];
@@ -238,7 +251,8 @@ function itemParagraph(b: Builder, instanceId: string, item: ResolvedItem): Run[
   if (answer?.defect) {
     runs.push(text(` — Désordre (${urgencyLower(answer.defect.urgency)})`, { bold: true, color: b.colors.defect }));
   }
-  if (photos.length) runs.push(text(` — photo${photos.length > 1 ? 's' : ''} ${photos.map((p) => p.number).join(', ')}`, { italic: true }));
+  if (answer?.probe) runs.push(text(' — À sonder', { bold: true, color: b.colors.accent }));
+  if (photos.length) runs.push(text(` — ${b.photoRefs(photos)}`, { italic: true }));
   return runs;
 }
 
@@ -368,9 +382,26 @@ function defects(b: Builder): void {
       b.paragraph([
         text(`${d.instanceLabel} — ${d.itemLabel}`, { bold: true }),
         text(obs ? ` : ${b.lex(obs)}` : ''),
-        text(photos.length ? ` (photo${photos.length > 1 ? 's' : ''} ${photos.map((p) => p.number).join(', ')})` : '', { italic: true }),
+        text(photos.length ? ` (${b.photoRefs(photos)})` : '', { italic: true }),
       ], { bullet: true });
     }
+  }
+}
+
+/** Sondages à réaliser : repères « À sonder » encore posés. Omis s'il n'y en a pas. */
+function probes(b: Builder): void {
+  const { template, visit, answers, config } = b.input;
+  const list = collectProbes(template, visit, answers).filter((p) => !p.done);
+  if (!list.length) return;
+  b.heading(1, config.headings.probes ?? 'SONDAGES À RÉALISER');
+  for (const p of list) {
+    const photos = b.photosOf(p.instanceId, p.itemId).filter((x) => x.kind === 'photo');
+    const obs = p.observation.trim();
+    b.paragraph([
+      text(`${p.instanceLabel} — ${p.itemLabel}`, { bold: true }),
+      text(obs ? ` : ${b.lex(obs)}` : ''),
+      text(photos.length ? ` (${b.photoRefs(photos)})` : '', { italic: true }),
+    ], { bullet: true });
   }
 }
 
@@ -414,9 +445,7 @@ function lexiconAnnex(b: Builder): void {
 export function buildReport(input: ReportInput): ReportModel {
   const b = new Builder(input);
   const { config, project } = input;
-  const masterPlan = config.masterPlanItem
-    ? input.photos.find((p) => p.itemId === config.masterPlanItem && p.kind !== 'photo')
-    : undefined;
+  const masterPlan = findMasterPlan(input.photos, config);
   const skip = new Set(masterPlan ? [masterPlan.id] : []);
   let notePosition = -1;
   for (const block of config.blocks) {
@@ -436,6 +465,9 @@ export function buildReport(input: ReportInput): ReportModel {
       case 'works':
         works(b);
         break;
+      case 'probes':
+        probes(b);
+        break;
       case 'lexicon':
         lexiconAnnex(b);
         break;
@@ -448,5 +480,5 @@ export function buildReport(input: ReportInput): ReportModel {
   }
   const name = String(project.fields['projet'] ?? '').trim();
   const fileBaseName = `${project.reference}${name ? ` ${name}` : ''}`.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return { blocks: b.blocks, photoIds: [...b.photoIds], lexiconTerms: b.terms, fileBaseName };
+  return { blocks: b.blocks, photoIds: [...b.photoIds], photoNumbers: Object.fromEntries(b.numbers), lexiconTerms: b.terms, fileBaseName };
 }

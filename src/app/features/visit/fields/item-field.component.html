@@ -10,6 +10,11 @@
     @if (state()?.defect; as d) {
       <span class="badge badge-danger">Désordre · {{ urgencyLabels[d.urgency] }}</span>
     }
+    @if (probe()) {
+      <span class="badge badge-probe">🔍 À sonder</span>
+    } @else if (probeDone()) {
+      <span class="badge badge-probe-done">Était à sonder</span>
+    }
     @if (revised()) {
       <span class="badge badge-revised">{{ original() === null ? 'Nouveau' : 'Modifié' }} dans cette mise à jour</span>
     }
@@ -147,6 +152,9 @@
         }
       }
       <span class="spacer"></span>
+      @if (canProbe() && !defectOpen()) {
+        <button class="choice probe-btn" type="button" [attr.aria-pressed]="probe()" (click)="toggleProbe()">🔍 À sonder</button>
+      }
       @if (canDefect()) {
         @if (defectOpen()) {
           <div class="choices defect-choices" role="group" aria-label="Urgence du désordre">

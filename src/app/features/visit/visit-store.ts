@@ -1,4 +1,7 @@
-import { computed, inject, Injectable, OnDestroy, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, OnDestroy, signal, untracked } from '@angular/core';
+import { linkedNumbersKey, withPhotoNumbers } from '../../core/annotation/shapes';
+import { photoNumbers, PhotoOrderConfig } from '../../core/report/photo-numbers';
+import { CabinetService } from '../../core/services/cabinet.service';
 import { AutosaveQueue } from '../../core/autosave/autosave-queue';
 import { EditJournal } from '../../core/autosave/edit-journal';
 import { PhotoPatch, ReadOnlyVisitError } from '../../core/db/diag-repository';
@@ -6,7 +9,7 @@ import { blankSketch, compressImage, PHOTO_OPTIONS, PLAN_OPTIONS } from '../../c
 import { PlanTransform, transformRaster, transformVector } from '../../core/media/plan-transform';
 import { annotatedThumb } from '../../core/media/thumbnail';
 import { ImportedPlan, openPdf, PdfHandle } from '../../core/media/pdf-plan';
-import { Answer, AnswerPatch, LegendEntry, Photo, Project, SectionInstance, Visit, VisitCursor } from '../../core/model/data';
+import { Answer, AnswerPatch, applyAnswerPatch, LegendEntry, Photo, Project, SectionInstance, Visit, VisitCursor } from '../../core/model/data';
 import { StorageService } from '../../core/services/storage.service';
 import { MediaRequest, PhotoView } from '../../shared/photo-strip.component';
 import { ResolvedItem, ResolvedSection, ResolvedTemplate } from '../../core/model/template';
@@ -18,8 +21,12 @@ export interface NavInstance extends SectionInstance {
   progress: Progress;
 }
 
-/** Clé de vignette : l'image seule, ou l'image et l'état de ses annotations. */
-const thumbKey = (p: Photo) => (p.annotations.length ? `${p.id}@${p.updatedAt}` : p.blobId);
+/** Clé de vignette : l'image seule, ou l'image, l'état de ses annotations et les numéros de ses pastilles reliées. */
+const thumbKey = (p: Photo, numbers: ReadonlyMap<string, number>) =>
+  (p.annotations.length ? `${p.id}@${p.updatedAt}#${linkedNumbersKey(p.annotations, numbers)}` : p.blobId);
+
+/** Ordre du rapport utilisé tant que la configuration n'est pas chargée. */
+const DEFAULT_ORDER: PhotoOrderConfig = { blocks: ['cover', 'body', 'conclusion'] };
 
 /** Item réservé aux plans de la conclusion (photo rattachée à la visite). */
 export const CONCLUSION_ITEM = '__conclusion';
@@ -65,8 +72,18 @@ export class VisitStore implements OnDestroy {
   /** Choix de la page d'un PDF de plusieurs pages (affiché par la page de visite). */
   readonly pdfChoice = signal<PdfChoice | null>(null);
   private readonly thumbs = signal<Map<string, string>>(new Map());
+  private thumbChain: Promise<void> = Promise.resolve();
   private mediaChain: Promise<void> = Promise.resolve();
   private readonly storage = inject(StorageService);
+  private readonly cabinet = inject(CabinetService);
+
+  /** Numéro affiché de chaque image : ordre du rapport, une suite par nature (docs/SPEC.md §9.1). */
+  readonly numbers = computed<ReadonlyMap<string, number>>(() => {
+    const template = this.template();
+    const visit = this.visit();
+    if (!template || !visit) return new Map();
+    return photoNumbers(template, visit, this.photos(), this.cabinet.config() ?? DEFAULT_ORDER);
+  });
 
   readonly readOnly = computed(() => this.visit()?.status !== 'draft');
   /** Une mise à jour plus récente existe : cette visite est définitivement en lecture seule. */
@@ -127,6 +144,11 @@ export class VisitStore implements OnDestroy {
     };
     document.addEventListener('visibilitychange', this.onHide);
     window.addEventListener('pagehide', this.onPageHide);
+    // une renumérotation (fiche déplacée, photo ajoutée…) redessine les vignettes dont les pastilles reliées changent
+    effect(() => {
+      this.numbers();
+      untracked(() => void this.loadThumbs());
+    });
   }
 
   ngOnDestroy(): void {
@@ -147,6 +169,7 @@ export class VisitStore implements OnDestroy {
       journal.delete(key);
     }
     this.queue.journal = journal;
+    void this.cabinet.load(); // ordre du rapport : numéros des photos
     const [project, visit, answers] = await Promise.all([
       this.repo.getProject(projectId),
       this.repo.getVisit(visitId),
@@ -212,11 +235,7 @@ export class VisitStore implements OnDestroy {
       changedInRevision: visit.revision, updatedAt: 0,
     };
     const next: Answer = { ...current, updatedAt: Date.now(), changedInRevision: visit.revision };
-    if ('value' in patch) next.value = patch.value ?? null;
-    if ('other' in patch) next.other = patch.other;
-    if ('observation' in patch) next.observation = patch.observation ?? '';
-    if (patch.defect === null) delete next.defect;
-    else if (patch.defect) next.defect = patch.defect;
+    applyAnswerPatch(next, patch);
     const map = new Map(this.answers());
     map.set(key, next);
     this.answers.set(map);
@@ -285,7 +304,17 @@ export class VisitStore implements OnDestroy {
   }
 
   thumbUrl(photo: Photo): string | undefined {
-    return this.thumbs().get(thumbKey(photo));
+    return this.thumbs().get(thumbKey(photo, this.numbers()));
+  }
+
+  /** Numéro affiché (ordre du rapport). */
+  number(photo: Photo): number {
+    return this.numbers().get(photo.id) ?? photo.number;
+  }
+
+  /** Annotations à dessiner : pastilles reliées avec le numéro courant de leur photo. */
+  displayShapes(shapes: Photo['annotations']): Photo['annotations'] {
+    return withPhotoNumbers(shapes, this.numbers()) as Photo['annotations'];
   }
 
   private async loadPhotos(): Promise<void> {
@@ -299,17 +328,26 @@ export class VisitStore implements OnDestroy {
    * Crée les URL des vignettes manquantes (binaires lus à la demande). Une image annotée a sa vignette
    * redessinée avec ses annotations ; les URL devenues inutiles sont libérées.
    */
-  private async loadThumbs(): Promise<void> {
+  private loadThumbs(): Promise<void> {
+    // une seule passe à la fois : deux passes concurrentes perdraient des URL
+    const run = this.thumbChain.then(() => this.refreshThumbs());
+    this.thumbChain = run.catch(() => undefined);
+    return run;
+  }
+
+  private async refreshThumbs(): Promise<void> {
     const map = new Map(this.thumbs());
     const used = new Set<string>();
     let changed = false;
+    const numbers = this.numbers();
     for (const p of this.photos()) {
-      const key = thumbKey(p);
+      const key = thumbKey(p, numbers);
       used.add(key);
       if (map.has(key)) continue;
       const blob = await this.repo.getBlob(p.blobId);
       if (!blob) continue;
-      const thumb = p.annotations.length ? await annotatedThumb(blob.thumb, p.annotations).catch(() => blob.thumb) : blob.thumb;
+      const shapes = withPhotoNumbers(p.annotations, numbers);
+      const thumb = p.annotations.length ? await annotatedThumb(blob.thumb, shapes).catch(() => blob.thumb) : blob.thumb;
       map.set(key, URL.createObjectURL(thumb));
       changed = true;
     }
@@ -394,7 +432,7 @@ export class VisitStore implements OnDestroy {
   }
 
   toView(p: Photo): PhotoView {
-    return { id: p.id, number: p.number, caption: p.caption, kind: p.kind, url: this.thumbUrl(p), annotated: p.annotations.length > 0 };
+    return { id: p.id, number: this.number(p), caption: p.caption, kind: p.kind, url: this.thumbUrl(p), annotated: p.annotations.length > 0 };
   }
 
   /** Libellé de l'emplacement d'une photo (« Bâtiment A — État des tuiles »). */

@@ -36,18 +36,19 @@ export class PhotosPage {
 
   readonly count = computed(() => this.store.photos().filter((p) => p.kind === 'photo').length);
 
-  /** Photos rattachées à des items, dans l'ordre des fiches. */
+  /** Photos rattachées à des items, dans l'ordre du rapport (celui de leurs numéros). */
   readonly groups = computed(() => {
-    const order = new Map(this.store.orderedInstances().map((inst, i) => [inst.id, i]));
-    const map = new Map<string, { key: string; label: string; rank: number; views: ReturnType<VisitStore['toView']>[] }>();
-    for (const p of this.store.photos()) {
-      if (p.kind !== 'photo' || !p.instanceId) continue;
+    const map = new Map<string, { key: string; label: string; views: ReturnType<VisitStore['toView']>[] }>();
+    const photos = this.store.photos()
+      .filter((p) => p.kind === 'photo' && p.instanceId)
+      .sort((a, b) => this.store.number(a) - this.store.number(b));
+    for (const p of photos) {
       const key = `${p.instanceId}|${p.itemId}`;
-      const group = map.get(key) ?? { key, label: this.store.photoLocation(p), rank: order.get(p.instanceId) ?? 999, views: [] };
+      const group = map.get(key) ?? { key, label: this.store.photoLocation(p), views: [] };
       group.views.push(this.store.toView(p));
       map.set(key, group);
     }
-    return [...map.values()].sort((a, b) => a.rank - b.rank);
+    return [...map.values()];
   });
 
   async add(request: MediaRequest): Promise<void> {

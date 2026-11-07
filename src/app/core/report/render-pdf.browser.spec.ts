@@ -63,7 +63,7 @@ async function assets(partial: Partial<PdfAssets> = {}): Promise<PdfAssets> {
   };
 }
 
-const model = (blocks: Block[]): ReportModel => ({ blocks, photoIds: [], lexiconTerms: [], fileBaseName: '2026-10-001 PROJET TEST' });
+const model = (blocks: Block[]): ReportModel => ({ blocks, photoIds: [], photoNumbers: {}, lexiconTerms: [], fileBaseName: '2026-10-001 PROJET TEST' });
 const para = (t: string): Block => ({ type: 'paragraph', runs: [{ text: t }] });
 
 beforeAll(() => configurePdfWorker(workerUrl));

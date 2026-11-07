@@ -1,9 +1,9 @@
 @if (photo(); as p) {
-  <div class="annotator" role="dialog" aria-modal="true" [attr.aria-label]="'Annotation ' + p.number">
+  <div class="annotator" role="dialog" aria-modal="true" [attr.aria-label]="'Annotation ' + number()">
     <header class="bar">
       <button class="btn btn-small" type="button" (click)="close()">← Retour</button>
       <div class="title">
-        <strong>{{ p.kind === 'photo' ? 'Photo' : p.kind === 'plan' ? 'Plan' : 'Croquis' }} {{ p.number }}</strong>
+        <strong>{{ p.kind === 'photo' ? 'Photo' : p.kind === 'plan' ? 'Plan' : 'Croquis' }} {{ number() }}</strong>
         <span class="where">{{ location() }}</span>
       </div>
       <input class="input caption" type="text" placeholder="Légende de l'image…" [value]="caption()"

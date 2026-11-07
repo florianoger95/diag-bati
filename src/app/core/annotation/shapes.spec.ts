@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { AnnotationHistory } from './history';
-import { arrowHead, bounds, duplicate, hitTest, nextBadge, Point, Shape, simplify, translate, usedColors } from './shapes';
+import {
+  arrowHead, bounds, duplicate, hitTest, linkedNumbersKey, nextBadge, Point, Shape, simplify, translate, usedColors, withPhotoNumbers,
+} from './shapes';
 
 const rect: Shape = { id: 'r', kind: 'rect', x: 0.1, y: 0.2, w: 0.3, h: 0.1, color: '#E00000', width: 0.005 };
 const badge: Shape = { id: 'b', kind: 'badge', x: 0.8, y: 0.8, n: 3, size: 0.03, color: '#0070c0' };
@@ -80,6 +82,22 @@ describe('trait, tampon, lettres, duplication', () => {
     const copy = duplicate(line, 'l2');
     expect(copy).toMatchObject({ id: 'l2', kind: 'line', x1: 0.23, y1: 0.63 });
     expect(line.id).toBe('l');
+  });
+
+  it('les pastilles reliées à une photo prennent son numéro courant', () => {
+    const shapes: Shape[] = [
+      line,
+      { id: 'a', kind: 'badge', x: 0, y: 0, n: 1, size: 0.03, color: '#000' },
+      { id: 'd', kind: 'badge', x: 0, y: 0, n: 7, size: 0.03, color: '#000', photoId: 'p7' },
+      { id: 'e', kind: 'badge', x: 0, y: 0, n: 9, size: 0.03, color: '#000', photoId: 'disparue' },
+    ];
+    const out = withPhotoNumbers(shapes, new Map([['p7', 2]]));
+    expect(out.map((s) => (s.kind === 'badge' ? s.n : s.kind))).toEqual(['line', 1, 2, 9]);
+    expect((shapes[2] as Extract<Shape, { kind: 'badge' }>).n).toBe(7); // original intact
+    expect(linkedNumbersKey(shapes, new Map([['p7', 2]]))).toBe('p7:2,disparue:');
+    // rien à changer : même tableau
+    const plain = [line];
+    expect(withPhotoNumbers(plain, new Map())).toBe(plain);
   });
 });
 

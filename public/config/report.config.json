@@ -10,7 +10,7 @@
     "accent": "#1F4E79",
     "caption": "#44546A"
   },
-  "blocks": ["cover", "body", "conclusion", "defects", "works", "lexicon"],
+  "blocks": ["cover", "body", "conclusion", "defects", "works", "probes", "lexicon"],
   "sectionPageBreak": true,
   "revisionHighlight": "all",
   "photos": { "columns": 2, "maxLongSide": 1200, "jpegQuality": 0.72, "planMaxLongSide": 2000 },
@@ -23,6 +23,7 @@
     "works": "RÉCAPITULATIF DES TRAVAUX ET ÉCHÉANCES",
     "safety": "Mesures de sécurité à court terme",
     "maintenance": "Mesures d'entretien",
+    "probes": "SONDAGES À RÉALISER",
     "lexicon": "ANNEXE – LEXIQUE"
   },
   "footer": "{page} / {pages}"

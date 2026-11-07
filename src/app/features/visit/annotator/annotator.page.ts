@@ -124,7 +124,15 @@ export class AnnotatorPage {
     const used = new Set(this.shapes().map((s) => s.color.toLowerCase()));
     return legend.filter((l) => used.has(l.color.toLowerCase()));
   });
-  readonly otherPhotos = computed(() => this.store.photos().filter((p) => p.id !== this.photoId() && p.kind === 'photo'));
+  readonly otherPhotos = computed(() => this.store.photos()
+    .filter((p) => p.id !== this.photoId() && p.kind === 'photo')
+    .map((p) => ({ id: p.id, caption: p.caption, number: this.store.number(p) }))
+    .sort((a, b) => a.number - b.number));
+  /** Numéro affiché de l'image ouverte (ordre du rapport). */
+  readonly number = computed(() => {
+    const p = this.photo();
+    return p ? this.store.number(p) : 0;
+  });
   readonly nextBadge = computed(() => {
     const next = nextBadge(this.shapes(), this.badgeMode());
     return next.label ?? String(next.n);
@@ -238,7 +246,8 @@ export class AnnotatorPage {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
     const draft = this.draft();
-    renderShapes(ctx, draft ? [...this.shapes(), draft] : this.shapes(), w, h, { selectedId: this.selectedId() });
+    const shapes = this.store.displayShapes(this.shapes());
+    renderShapes(ctx, draft ? [...shapes, draft] : shapes, w, h, { selectedId: this.selectedId() });
     const crop = this.cropRect();
     if (crop) {
       // zone conservée claire, le reste assombri
@@ -470,7 +479,7 @@ export class AnnotatorPage {
   private addBadge(p: Point): void {
     const target = this.badgeTarget();
     const linked = target !== 'auto' ? this.store.photo(target) : undefined;
-    const next = linked ? { n: linked.number } : nextBadge(this.shapes(), this.badgeMode());
+    const next = linked ? { n: this.store.number(linked) } : nextBadge(this.shapes(), this.badgeMode());
     const badge: Shape = {
       id: crypto.randomUUID(), kind: 'badge', x: p[0], y: p[1], size: this.textSize() * 0.75, color: this.color(),
       ...next,
@@ -639,7 +648,7 @@ export class AnnotatorPage {
   async remove(): Promise<void> {
     const photo = this.photo();
     if (!photo) return;
-    const ok = await this.dialogs.confirm(`Supprimer ${photo.kind === 'photo' ? 'la photo' : 'le plan'} n° ${photo.number} ?`,
+    const ok = await this.dialogs.confirm(`Supprimer ${photo.kind === 'photo' ? 'la photo' : 'le plan'} n° ${this.number()} ?`,
       'L’image et ses annotations seront supprimées.', { confirmLabel: 'Supprimer', danger: true });
     if (!ok) return;
     this.pendingSave = false;

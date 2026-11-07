@@ -106,9 +106,11 @@ export interface Answer {
   other?: string;
   observation: string;
   defect?: { urgency: Urgency };
+  /** Repère « À sonder » posé sur l'observation (cumulable avec un désordre). */
+  probe?: true;
   changedInRevision: number;
   /** État repris de la visite précédente (diff « dernière mise à jour », annulation). */
-  inherited?: { value: AnswerValue; other?: string; observation: string; changedInRevision: number };
+  inherited?: { value: AnswerValue; other?: string; observation: string; changedInRevision: number; probe?: true };
   /** État à la fin de la visite initiale (diff « toutes les mises à jour »). */
   baseline?: { value: AnswerValue; other?: string; observation: string };
   updatedAt: number;
@@ -117,7 +119,20 @@ export interface Answer {
 /** Modification partielle d'une réponse. */
 export type AnswerPatch = Partial<Pick<Answer, 'value' | 'other' | 'observation'>> & {
   defect?: { urgency: Urgency } | null;
+  /** `false` retire le repère « À sonder ». */
+  probe?: boolean;
 };
+
+/** Applique un patch à une réponse (même règle dans l'écran et dans la base). */
+export function applyAnswerPatch(answer: Answer, patch: AnswerPatch): void {
+  if ('value' in patch) answer.value = patch.value ?? null;
+  if ('other' in patch) answer.other = patch.other;
+  if ('observation' in patch) answer.observation = patch.observation ?? '';
+  if (patch.defect === null) delete answer.defect;
+  else if (patch.defect) answer.defect = patch.defect;
+  if (patch.probe === true) answer.probe = true;
+  else if (patch.probe === false) delete answer.probe;
+}
 
 export interface Photo {
   id: string;

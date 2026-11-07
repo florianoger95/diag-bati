@@ -24,6 +24,8 @@ export interface FieldState {
   other?: string;
   observation: string;
   defect?: { urgency: Urgency };
+  probe?: true;
+  inherited?: { probe?: true };
 }
 
 export interface FieldChange {
@@ -40,6 +42,7 @@ export interface FieldChange {
   styleUrl: './item-field.component.scss',
   host: {
     '[class.defect]': '!!state()?.defect',
+    '[class.probe]': 'probe()',
     '[class.revised]': 'revised()',
     '[class.heading]': "item().type === 'heading'",
     '[attr.id]': "'item-' + item().id",
@@ -74,6 +77,11 @@ export class ItemFieldComponent {
 
   /** Pas de désordre sur les rubriques de synthèse (commentaires, préconisations, mesures). */
   readonly canDefect = computed(() => this.allowDefect() && !this.item().role);
+  /** Repère « À sonder » : sur l'observation, hors rubriques de synthèse. */
+  readonly canProbe = computed(() => this.canDefect() && this.showObservation());
+  readonly probe = computed(() => !!this.state()?.probe);
+  /** Mise à jour : le repère de la visite précédente a été levé. */
+  readonly probeDone = computed(() => !this.probe() && !!this.state()?.inherited?.probe);
   /** Boutons photo discrets sur les items qui ne sont pas des items photo. */
   readonly compactPhotos = computed(() => this.withPhotos() && this.item().type !== 'photo' && !this.item().role);
   readonly lexiconTerms = computed(() => {
@@ -167,5 +175,9 @@ export class ItemFieldComponent {
   setDefect(urgency: Urgency | null): void {
     this.emit({ defect: urgency ? { urgency } : null });
     this.defectOpen.set(false);
+  }
+
+  toggleProbe(): void {
+    this.emit({ probe: !this.probe() });
   }
 }

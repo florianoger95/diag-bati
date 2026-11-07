@@ -185,6 +185,34 @@ export function collectDefects(template: ResolvedTemplate, visit: Visit, answers
   return defects.sort((a, b) => urgencyRank(a.urgency) - urgencyRank(b.urgency));
 }
 
+/** La réponse porte le repère « À sonder », ou le portait dans la visite précédente. */
+export function isProbeRelated(answer: Pick<Answer, 'probe' | 'inherited'> | undefined): boolean {
+  return !!answer && (!!answer.probe || !!answer.inherited?.probe);
+}
+
+export interface ProbeRef extends ItemRef {
+  observation: string;
+  /** Repère levé dans cette mise à jour (il était posé dans la visite précédente). */
+  done: boolean;
+}
+
+/** Repères « À sonder », dans l'ordre de la visite (fiches puis items). */
+export function collectProbes(template: ResolvedTemplate, visit: Visit, answers: Answer[]): ProbeRef[] {
+  const index = indexAnswers(answers);
+  const probes: ProbeRef[] = [];
+  for (const instance of sortedInstances(visit, template)) {
+    for (const item of sectionItems(template, instance.sectionId)) {
+      const a = index.get(answerKey(instance.id, item.id));
+      if (!isProbeRelated(a)) continue;
+      probes.push({
+        instanceId: instance.id, instanceLabel: instance.label, sectionId: instance.sectionId,
+        itemId: item.id, itemLabel: item.label, observation: a!.observation, done: !a!.probe,
+      });
+    }
+  }
+  return probes;
+}
+
 export interface ActionRef extends ItemRef, ActionRow {
   role?: ItemRole;
 }

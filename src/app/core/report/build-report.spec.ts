@@ -151,7 +151,7 @@ describe('buildReport', () => {
 
   it('imprime les plans en pleine largeur avec la légende des seules couleurs utilisées', () => {
     const plan = model.blocks.find((b) => b.type === 'plan') as Extract<Block, { type: 'plan' }>;
-    expect(plan.photo.number).toBe(3);
+    expect(plan.photo.number).toBe(1); // « Plan 1 » : suite propre aux plans
     expect(plan.legend).toEqual([{ color: '#ff0000', label: 'Fissure structurelle' }]);
   });
 
@@ -256,6 +256,59 @@ describe('buildReport', () => {
     it('témoins de fissure : historique daté des relevés', () => {
       const line = plain(para(build('latest'), '- Témoins de fissure'));
       expect(line).toBe('- Témoins de fissure : Témoin 1 : H 0 mm ; V -3 mm (17/09/2026), puis H 2 mm ; V -1 mm (23/10/2026)');
+    });
+  });
+
+  it('numérote les images dans l’ordre des pages, quel que soit leur numéro de création', () => {
+    const shuffled: Photo[] = [
+      photo({ id: 'f1', number: 1, instanceId: 'nord', itemId: 'fac-pente' }),
+      photo({ id: 'b1', number: 2, instanceId: 'bat-a', itemId: 'couv-patho' }),
+      photo({ id: 'a1', number: 3, instanceId: 'bat-a', itemId: 'couv-etat' }),
+      photo({ id: 'g1', number: 4 }),
+      photo({ id: 'pl', number: 5, instanceId: 'nord', itemId: 'fac-pente', kind: 'plan' }),
+      photo({ id: 'pm', number: 6, instanceId: 'generalites', itemId: 'gen-plan', kind: 'plan' }),
+    ];
+    const m = buildReport(input({ photos: shuffled }));
+    const seen: { kind: string; number: number }[] = [];
+    for (const b of m.blocks) {
+      if (b.type === 'photos') seen.push(...b.photos);
+      if (b.type === 'plan') seen.push(b.photo);
+    }
+    expect(seen.filter((p) => p.kind === 'photo').map((p) => p.number)).toEqual([1, 2, 3, 4]);
+    expect(seen.filter((p) => p.kind === 'plan').map((p) => p.number)).toEqual([1, 2]);
+    // renvois du texte cohérents avec les légendes
+    expect(texts(m.blocks).find((t) => t.startsWith('- État des tuiles'))).toMatch(/— photo 1$/);
+    expect(texts(m.blocks).find((t) => t.startsWith('- Pathologies'))).toMatch(/— photo 2$/);
+    expect(m.photoNumbers).toMatchObject({ a1: 1, b1: 2, f1: 3, g1: 4, pm: 1, pl: 2 });
+  });
+
+  describe('repère « À sonder »', () => {
+    const probed = [
+      ...answers,
+      answer('bat-a', 'couv-patho', { value: ['mousse'], observation: 'Lattis à vérifier', probe: true }),
+      answer('nord', 'fac-humidite', { observation: 'Remontées en pied de mur', probe: true, defect: { urgency: 'monitor' } }),
+    ];
+    const m = buildReport(input({ answers: probed }));
+    const all2 = texts(m.blocks);
+
+    it('ajoute « — À sonder » à la ligne de l’item, après le désordre', () => {
+      expect(all2.find((t) => t.startsWith('- Pathologies'))).toBe('- Pathologies : Mousse. Lattis à vérifier — À sonder');
+      expect(all2.find((t) => t.startsWith('- Humidité du mur'))).toBe('- Humidité du mur : Remontées en pied de mur — Désordre (à surveiller) — À sonder');
+    });
+
+    it('liste les sondages à réaliser après le récapitulatif des travaux', () => {
+      const i = all2.indexOf('SONDAGES À RÉALISER');
+      expect(i).toBeGreaterThan(all2.indexOf('RÉCAPITULATIF DES TRAVAUX ET ÉCHÉANCES'));
+      expect(all2.slice(i + 1, i + 3)).toEqual([
+        'Bâtiment A — Pathologies : Lattis à vérifier',
+        'Façade nord — Humidité du mur : Remontées en pied de mur',
+      ]);
+      const heading = m.blocks.find((b) => plain(b) === 'SONDAGES À RÉALISER');
+      expect(heading).toMatchObject({ type: 'heading', level: 1 });
+    });
+
+    it('omet la liste sans repère', () => {
+      expect(all).not.toContain('SONDAGES À RÉALISER');
     });
   });
 

@@ -71,7 +71,8 @@ test('mode avion : import de la page 2 d’un plan PDF, puis croquis', async ({ 
   await page.getByRole('button', { name: '← Retour' }).click();
 
   await page.getByRole('button', { name: '✏️ Croquis' }).click();
-  await expect(page.getByText('Croquis 2')).toBeVisible();
+  // une suite par nature : premier croquis après le plan 1
+  await expect(page.getByText('Croquis 1')).toBeVisible();
   await drag(page, [0.2, 0.5], [0.8, 0.5]);
   await expect(page.locator('.annotator canvas')).toHaveAttribute('aria-label', 'Annotations : 1');
 });

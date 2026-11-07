@@ -20,17 +20,24 @@
         }
       </div>
       @if (section()?.helpText) { <p class="hint">{{ section()?.helpText }}</p> }
-      @if ((store.visit()?.revision ?? 0) > 0) {
-        <div class="row">
-          <button class="choice chip" type="button" [attr.aria-pressed]="onlyChanged()" (click)="onlyChanged.set(!onlyChanged())">
-            Modifiés dans cette mise à jour seulement
-          </button>
+      @if ((store.visit()?.revision ?? 0) > 0 || hasProbes()) {
+        <div class="row filters" role="group" aria-label="Filtres">
+          @if ((store.visit()?.revision ?? 0) > 0) {
+            <button class="choice chip" type="button" [attr.aria-pressed]="onlyChanged()" (click)="onlyChanged.set(!onlyChanged())">
+              Modifiés dans cette mise à jour seulement
+            </button>
+          }
+          @if (hasProbes()) {
+            <button class="choice chip" type="button" [attr.aria-pressed]="onlyProbes()" (click)="onlyProbes.set(!onlyProbes())">
+              🔍 À sonder seulement
+            </button>
+          }
         </div>
       }
     </header>
 
     @for (item of items(); track item.id) {
-      @if (onlyChanged() && !store.isChangedHere(state(item))) {
+      @if (hidden(item)) {
         <!-- masqué par le filtre -->
       } @else {
       @if (item.fromFooter && $first === false && !items()[$index - 1].fromFooter) {

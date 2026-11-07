@@ -39,7 +39,7 @@ const blocks: Block[] = [
   { type: 'plan', photo: { photoId: 'p', number: 4, kind: 'plan', caption: 'Plan RDC' }, legend: [{ color: '#ff0000', label: 'Fissure structurelle' }] },
   { type: 'annex', pages: 'all' },
 ];
-const model: ReportModel = { blocks, photoIds: ['a', 'b', 'c', 'p'], lexiconTerms: [], fileBaseName: 'Test' };
+const model: ReportModel = { blocks, photoIds: ['a', 'b', 'c', 'p'], photoNumbers: {}, lexiconTerms: [], fileBaseName: 'Test' };
 
 async function unzip(blob: Blob) {
   return JSZip.loadAsync(await blob.arrayBuffer());

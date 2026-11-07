@@ -21,6 +21,23 @@
     }
   </section>
 
+  @if (probes().length) {
+    <section class="card stack" aria-labelledby="t-sondages">
+      <h2 id="t-sondages">Sondages à réaliser <span class="badge badge-probe">{{ probesLeft() }}</span></h2>
+      <ul class="list">
+        @for (p of probes(); track p.instanceId + p.itemId) {
+          <li>
+            <a [routerLink]="link(p)" [fragment]="fragment(p)" class="entry">
+              @if (p.done) { <span class="badge">Levé</span> } @else { <span class="badge badge-probe">À sonder</span> }
+              <span><strong>{{ p.instanceLabel }}</strong> — {{ p.itemLabel }}</span>
+              @if (p.observation) { <span class="obs">{{ p.observation }}</span> }
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
   <section class="card stack" aria-labelledby="t-securite">
     <h2 id="t-securite">Mesures de sécurité à court terme</h2>
     @if (safety().length === 0) {

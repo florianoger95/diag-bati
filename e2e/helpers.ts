@@ -1,4 +1,21 @@
 import { expect, Page } from '@playwright/test';
+import JSZip from 'jszip';
+
+/** Génère le rapport Word depuis la page Rapport et renvoie son `document.xml`. */
+export async function docxXml(page: Page): Promise<string> {
+  await page.getByRole('button', { name: '📝 Générer le Word (.docx)' }).click();
+  const card = page.getByRole('region', { name: 'Rapport docx' });
+  await expect(card).toBeVisible({ timeout: 60_000 });
+  const href = await card.getByRole('link', { name: 'Ouvrir' }).getAttribute('href');
+  const base64 = await page.evaluate(async (url) => {
+    const bytes = new Uint8Array(await (await fetch(url!)).arrayBuffer());
+    let s = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(s);
+  }, href);
+  const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'));
+  return zip.file('word/document.xml')!.async('string');
+}
 
 /** Attend que le service worker contrôle la page (app disponible hors ligne). */
 export async function waitForOfflineReady(page: Page): Promise<void> {

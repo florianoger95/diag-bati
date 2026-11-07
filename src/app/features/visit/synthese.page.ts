@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink } from '@angular/router';
 import { URGENCIES, URGENCY_LABELS, URGENCY_LEGEND, Urgency } from '../../core/model/data';
 import { DialogService } from '../../core/services/dialog.service';
-import { ActionRef, collectActions, collectDefects, missingRequired } from '../../core/templates/template-engine';
+import { ActionRef, collectActions, collectDefects, collectProbes, missingRequired } from '../../core/templates/template-engine';
 import { VisitStore } from './visit-store';
 
 /** Synthèse avant clôture : désordres, mesures de sécurité, récapitulatif des travaux, oublis. */
@@ -37,7 +37,15 @@ export class SynthesePage {
     return t && v ? collectDefects(t, v, this.answers()) : [];
   });
 
-  private actions(role: 'safety' | 'recommendation' | 'maintenance') {
+  /** Repères « À sonder » ; en mise à jour, ceux de la visite précédente levés depuis. */
+  readonly probes = computed(() => {
+    const t = this.store.template();
+    const v = this.store.visit();
+    return t && v ? collectProbes(t, v, this.answers()) : [];
+  });
+  readonly probesLeft = computed(() => this.probes().filter((p) => !p.done).length);
+
+  private actions(role:'safety' | 'recommendation' | 'maintenance') {
     const t = this.store.template();
     const v = this.store.visit();
     return t && v ? collectActions(t, v, this.answers(), role) : [];

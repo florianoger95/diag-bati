@@ -6,7 +6,9 @@ import { validateTemplate } from './template-validator';
 import {
   collectActions,
   collectDefects,
+  collectProbes,
   instanceProgress,
+  isProbeRelated,
   isAnswered,
   isOutOfRange,
   missingRequired,
@@ -191,6 +193,22 @@ describe('progression, obligatoires, désordres, actions', () => {
       ['Nord', "Pente de l'appui", 'monitor'],
     ]);
     expect(defects[0].observation).toBe('Tuiles poreuses');
+  });
+
+  it('collecte les repères « À sonder » dans l’ordre de la visite, levés compris', () => {
+    const list = [
+      answer('nord', 'fac-pente', { value: 4, probe: true, observation: 'Appui creux' }),
+      answer('bat-a', 'couv-etat', { value: 'mauvais', inherited: { value: 'mauvais', observation: '', changedInRevision: 0, probe: true } }),
+      answer('bat-a', 'couv-type', { value: '2-pans', probe: true, defect: { urgency: 'short' } }),
+    ];
+    expect(collectProbes(resolved, visit, list).map((p) => [p.instanceLabel, p.itemId, p.done])).toEqual([
+      ['Bâtiment A', 'couv-type', false],
+      ['Bâtiment A', 'couv-etat', true],
+      ['Nord', 'fac-pente', false],
+    ]);
+    expect(collectProbes(resolved, visit, list)[2].observation).toBe('Appui creux');
+    expect(isProbeRelated(list[1])).toBe(true);
+    expect(isProbeRelated(answers[0])).toBe(false);
   });
 
   it('collecte les actions par rôle en ignorant les lignes vides', () => {
