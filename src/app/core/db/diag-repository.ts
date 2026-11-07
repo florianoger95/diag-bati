@@ -309,7 +309,10 @@ export class DiagRepository {
         createdAt: now,
         updatedAt: now,
       };
-      const state = (a: Answer) => ({ value: structuredClone(a.value), ...(a.other !== undefined ? { other: a.other } : {}), observation: a.observation });
+      const state = (a: Answer) => ({
+        value: structuredClone(a.value), ...(a.other !== undefined ? { other: a.other } : {}), observation: a.observation,
+        ...(a.extra?.length ? { extra: structuredClone(a.extra) } : {}),
+      });
       const answers = (await db.answers.where('visitId').equals(latest.id).toArray()).map((a): Answer => {
         const copy: Answer = {
           ...structuredClone(a), visitId: visit.id,
@@ -341,6 +344,7 @@ export class DiagRepository {
       const reverted: Answer = { ...answer, ...structuredClone(state), changedInRevision, updatedAt: this.deps.now() };
       if (state.other === undefined) delete reverted.other;
       if (!state.probe) delete reverted.probe;
+      if (!state.extra?.length) delete reverted.extra;
       await this.db.answers.put(reverted);
       return reverted;
     });
@@ -381,6 +385,16 @@ export class DiagRepository {
       const instance = visit.instances.find((i) => i.id === instanceId);
       if (!instance) throw new NotFoundError('Instance');
       if (label.trim()) instance.label = label.trim();
+    });
+  }
+
+  /** Plan de référence choisi sur une fiche (null : retour au choix du modèle). */
+  setReferencePlan(visitId: string, instanceId: string, photoId: string | null): Promise<void> {
+    return this.mutateVisit(visitId, (visit) => {
+      const instance = visit.instances.find((i) => i.id === instanceId);
+      if (!instance) throw new NotFoundError('Instance');
+      if (photoId) instance.referencePlanId = photoId;
+      else delete instance.referencePlanId;
     });
   }
 

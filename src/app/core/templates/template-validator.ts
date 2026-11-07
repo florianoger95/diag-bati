@@ -116,5 +116,20 @@ export function validateTemplate(input: unknown): ValidationResult {
     }
   }
 
+  // plans de référence : des items plan existants (de n'importe quelle section)
+  const planItems = new Set((t.sections ?? []).flatMap((s) => (Array.isArray(s?.items) ? s.items : []))
+    .filter((i) => i?.type === 'photo' && i.photoKind === 'plan').map((i) => i.id));
+  for (const section of t.sections ?? []) {
+    const ref = isObject(section) ? section.referencePlan : undefined;
+    if (ref === undefined) continue;
+    if (!isObject(ref) || !Array.isArray(ref.items) || !ref.items.length) {
+      errors.push(`Section « ${section.id} » : referencePlan.items manquant.`);
+      continue;
+    }
+    for (const id of ref.items) {
+      if (!planItems.has(id)) errors.push(`Section « ${section.id} » : referencePlan « ${id} » n'est pas un item plan.`);
+    }
+  }
+
   return errors.length ? { ok: false, errors } : { ok: true, errors: [], template: t as ChecklistTemplate };
 }

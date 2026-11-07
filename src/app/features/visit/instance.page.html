@@ -20,6 +20,18 @@
         }
       </div>
       @if (section()?.helpText) { <p class="hint">{{ section()?.helpText }}</p> }
+      @if (hasReference() && reference().candidates.length > 1) {
+        <label class="row reference-plan">
+          <span class="hint">📍 Plan de référence :</span>
+          <select class="input" [value]="reference().plan?.id ?? ''" [disabled]="store.readOnly()"
+                  (change)="choosePlan($any($event.target).value)" aria-label="Plan de référence de la fiche">
+            @if (!reference().plan) { <option value="">— choisir le plan (niveau) —</option> }
+            @for (p of reference().candidates; track p.id) {
+              <option [value]="p.id">{{ planLabel(p) }}</option>
+            }
+          </select>
+        </label>
+      }
       @if ((store.visit()?.revision ?? 0) > 0 || hasProbes()) {
         <div class="row filters" role="group" aria-label="Filtres">
           @if ((store.visit()?.revision ?? 0) > 0) {
@@ -47,6 +59,7 @@
                       [withPhotos]="true" [photos]="store.photoViews(inst.id, item.id)" [lexicon]="lexicon()"
                       [revised]="store.isChangedHere(state(item))" [original]="original(item)"
                       (revert)="store.revertAnswer(inst.id, item.id)"
+                      [locate]="locateView(item)" (locateRequest)="locateItem(item)"
                       (media)="onMedia(item, $event)" (openPhoto)="openPhoto($event)" />
       }
     }

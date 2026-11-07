@@ -11,6 +11,28 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
 - **Lot 4** : mises à jour successives, sauvegarde et restauration, modèles importés, indicateur « Prête hors ligne ».
 - **Lot 5a** : retours terrain sur l'annotation, les plans et les définitions des urgences.
 - **Lot 5b** : repère « À sonder », liste des sondages, numéros des photos dans l'ordre du rapport.
+- **Lot 5c** : plusieurs observations par item, photos situées sur le plan de référence de la fiche.
+
+## Plusieurs observations par item
+
+- Le bouton **+ Observation** ajoute une observation à l'item. Chacune a son « 🔍 À sonder » et son « ⚠ Désordre ».
+  À partir de la deuxième, chacune peut aussi être retirée (« ✕ Retirer »). Les photos restent rattachées à l'item.
+- Dans le rapport, la première observation reste sur la ligne de l'item ; les suivantes forment des paragraphes en retrait.
+  La synthèse des désordres et la liste des sondages ont une entrée par observation.
+- Les dossiers existants n'ont rien à convertir : leur observation devient la première.
+
+## Situer une photo sur le plan
+
+- Chaque fiche a un **plan de référence**, défini dans le modèle (`referencePlan`).
+  - Couverture : son propre plan, sinon le plan de toiture ou de masse.
+  - Façades : les plans de façades.
+  - Pièces : le plan du niveau, à **choisir en tête de la fiche pièce** s'il y en a plusieurs.
+- Après une photo, le bouton **📍 Situer la photo n** ouvre le plan. Dans l'annotateur d'une photo, c'est « 📍 Situer sur le plan ».
+  1. Touchez l'endroit de la prise de vue.
+  2. Glissez vers ce que la photo montre.
+  3. Une pastille fléchée au numéro de la photo est posée sur le plan, et l'on revient à l'item.
+- Situer à nouveau une photo déplace sa pastille. Une photo située porte 📍 sur sa vignette.
+- Les dossiers créés avant ce lot utilisent les plans de référence du modèle livré.
 
 ## Repère « À sonder »
 

@@ -1,6 +1,8 @@
 .stack-tight { display: flex; flex-direction: column; gap: 4px; }
 .section { font-size: 15px; font-weight: 700; text-transform: uppercase; }
 .tools { gap: 8px; }
+.reference-plan { gap: 8px; align-items: center; flex-wrap: wrap; }
+.reference-plan select { width: auto; max-width: 100%; }
 .footer-title { margin-top: 16px; padding-top: 16px; border-top: 3px solid var(--surface-2); }
 .pager {
   position: sticky; bottom: 0; z-index: 10;

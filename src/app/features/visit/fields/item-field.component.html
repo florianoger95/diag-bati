@@ -7,14 +7,6 @@
     <span class="label" [id]="'label-' + it.id">
       {{ it.label }}@if (it.required) {<span class="req" aria-label="obligatoire"> *</span>}
     </span>
-    @if (state()?.defect; as d) {
-      <span class="badge badge-danger">Désordre · {{ urgencyLabels[d.urgency] }}</span>
-    }
-    @if (probe()) {
-      <span class="badge badge-probe">🔍 À sonder</span>
-    } @else if (probeDone()) {
-      <span class="badge badge-probe-done">Était à sonder</span>
-    }
     @if (revised()) {
       <span class="badge badge-revised">{{ original() === null ? 'Nouveau' : 'Modifié' }} dans cette mise à jour</span>
     }
@@ -103,19 +95,65 @@
     }
   </div>
 
-  @if (showObservation()) {
-    <textarea class="input observation" rows="1" placeholder="Observations…" [appAutoGrow]="observation()"
-              [value]="observation()" [readOnly]="readonly()" [attr.aria-label]="'Observations — ' + it.label"
-              (input)="setObservation($any($event.target).value)"></textarea>
-    @if (lexiconTerms().length) {
-      <div class="lexicon" aria-label="Termes du lexique marqués d'un astérisque dans le rapport">
-        <span class="hint">Lexique :</span>
-        @for (t of lexiconTerms(); track t.index) {
-          <button class="term" type="button" [class.off]="t.excluded" [disabled]="readonly()" (click)="toggleTerm(t.index)"
-                  [attr.aria-pressed]="!t.excluded"
-                  [attr.aria-label]="t.word + (t.excluded ? ' : non marqué, toucher pour marquer' : ' : marqué, toucher pour ne pas marquer ici')">
-            {{ t.word }}{{ t.excluded ? '' : '*' }}
-          </button>
+  @if (showObservation() || canDefect()) {
+    @for (o of entries(); track o.id; let i = $index) {
+      <div class="obs" [class.obs-extra]="i > 0" role="group" [attr.aria-label]="obsLabel(i)">
+        @if (showObservation()) {
+          <textarea class="input observation" rows="1" [placeholder]="i ? 'Autre observation…' : 'Observations…'" [appAutoGrow]="o.text"
+                    [id]="'obs-' + it.id + '-' + o.id" [value]="o.text" [readOnly]="readonly()"
+                    [attr.aria-label]="(i ? 'Observation ' + (i + 1) : 'Observations') + ' — ' + it.label"
+                    (focus)="activeObs.set(o.id)" (input)="setEntryText(o.id, $any($event.target).value)"></textarea>
+          @if (termsOf(o.id).length) {
+            <div class="lexicon" aria-label="Termes du lexique marqués d'un astérisque dans le rapport">
+              <span class="hint">Lexique :</span>
+              @for (t of termsOf(o.id); track t.index) {
+                <button class="term" type="button" [class.off]="t.excluded" [disabled]="readonly()" (click)="toggleTerm(o.id, t.index)"
+                        [attr.aria-pressed]="!t.excluded"
+                        [attr.aria-label]="t.word + (t.excluded ? ' : non marqué, toucher pour marquer' : ' : marqué, toucher pour ne pas marquer ici')">
+                  {{ t.word }}{{ t.excluded ? '' : '*' }}
+                </button>
+              }
+            </div>
+          }
+        }
+        @if (o.defect || o.probe || probeDone(o) || (!readonly() && canDefect())) {
+          <div class="obs-tools">
+            @if (o.defect; as d) {
+              <span class="badge badge-danger">Désordre · {{ urgencyLabels[d.urgency] }}</span>
+            }
+            @if (o.probe) {
+              <span class="badge badge-probe">🔍 À sonder</span>
+            } @else if (probeDone(o)) {
+              <span class="badge badge-probe-done">Était à sonder</span>
+            }
+            <span class="spacer"></span>
+            @if (!readonly() && canDefect()) {
+              @if (defectOpen() === o.id) {
+                <div class="choices defect-choices" role="group" aria-label="Urgence du désordre">
+                  @for (u of urgencies; track u) {
+                    <button class="choice" type="button" [class.warn]="true" [attr.aria-pressed]="o.defect?.urgency === u"
+                            (click)="setEntryDefect(o.id, u)">{{ urgencyLabels[u] }}</button>
+                  }
+                  @if (o.defect) {
+                    <button class="btn btn-small" type="button" (click)="setEntryDefect(o.id, null)">Retirer</button>
+                  }
+                  <button class="btn btn-ghost btn-small" type="button" (click)="defectOpen.set(null)">Fermer</button>
+                </div>
+                <p class="hint urgency-legend">{{ urgencyLegend }}</p>
+              } @else {
+                @if (canProbe()) {
+                  <button class="choice probe-btn" type="button" [attr.aria-pressed]="!!o.probe" (click)="toggleEntryProbe(o.id)">🔍 À sonder</button>
+                }
+                <button class="btn btn-small btn-danger defect-btn" type="button" (click)="defectOpen.set(o.id)">
+                  ⚠ {{ o.defect ? 'Modifier le désordre' : 'Désordre' }}
+                </button>
+                @if (i > 0) {
+                  <button class="btn btn-small btn-ghost" type="button" (click)="removeObservation(o.id)"
+                          [attr.aria-label]="'Retirer l’observation ' + (i + 1)">✕ Retirer</button>
+                }
+              }
+            }
+          </div>
         }
       </div>
     }
@@ -141,10 +179,13 @@
     <app-photo-strip [photos]="photos()" [showActions]="false" (open)="openPhoto.emit($event)" />
   }
 
-  @if (!readonly() && (snippetTarget() || canDefect() || compactPhotos())) {
+  @if (!readonly() && (snippetTarget() || compactPhotos() || canAddObservation() || locate())) {
     <div class="tools">
       @if (compactPhotos()) {
         <app-photo-strip [photos]="photos()" mode="compact" [showThumbs]="false" (add)="media.emit($event)" />
+      }
+      @if (locate(); as l) {
+        <button class="btn btn-small locate-btn" type="button" (click)="locateRequest.emit()">📍 Situer la photo {{ l.number }}</button>
       }
       @if (snippetTarget()) {
         @for (s of it.snippets; track s) {
@@ -152,27 +193,8 @@
         }
       }
       <span class="spacer"></span>
-      @if (canProbe() && !defectOpen()) {
-        <button class="choice probe-btn" type="button" [attr.aria-pressed]="probe()" (click)="toggleProbe()">🔍 À sonder</button>
-      }
-      @if (canDefect()) {
-        @if (defectOpen()) {
-          <div class="choices defect-choices" role="group" aria-label="Urgence du désordre">
-            @for (u of urgencies; track u) {
-              <button class="choice" type="button" [class.warn]="true" [attr.aria-pressed]="state()?.defect?.urgency === u"
-                      (click)="setDefect(u)">{{ urgencyLabels[u] }}</button>
-            }
-            @if (state()?.defect) {
-              <button class="btn btn-small" type="button" (click)="setDefect(null)">Retirer</button>
-            }
-            <button class="btn btn-ghost btn-small" type="button" (click)="defectOpen.set(false)">Fermer</button>
-          </div>
-          <p class="hint urgency-legend">{{ urgencyLegend }}</p>
-        } @else {
-          <button class="btn btn-small btn-danger defect-btn" type="button" (click)="defectOpen.set(true)">
-            ⚠ {{ state()?.defect ? 'Modifier le désordre' : 'Désordre' }}
-          </button>
-        }
+      @if (canAddObservation()) {
+        <button class="btn btn-small" type="button" (click)="addObservation()">+ Observation</button>
       }
     </div>
   }

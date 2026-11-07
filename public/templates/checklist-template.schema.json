@@ -51,6 +51,16 @@
           },
           "additionalProperties": false
         },
+        "referencePlan": {
+          "description": "Plan sur lequel situer les photos de la fiche : items plan candidats, dans l'ordre de préférence (la fiche elle-même d'abord). choose : le plan se choisit sur la fiche (ex. niveau d'une pièce).",
+          "type": "object",
+          "required": ["items"],
+          "properties": {
+            "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/id" } },
+            "choose": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
         "items": { "type": "array", "items": { "$ref": "#/$defs/item" } }
       },
       "additionalProperties": false

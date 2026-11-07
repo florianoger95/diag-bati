@@ -7,6 +7,8 @@ export interface PhotoView {
   kind: 'photo' | 'plan' | 'sketch';
   url?: string;
   annotated: boolean;
+  /** Photo située sur un plan. */
+  located?: boolean;
 }
 
 export type MediaSource = 'camera' | 'library' | 'pdf' | 'plan-photo' | 'sketch';
@@ -26,10 +28,11 @@ export interface MediaRequest {
         @for (p of photos(); track p.id) {
           <li>
             <button class="thumb" type="button" (click)="open.emit(p.id)"
-                    [attr.aria-label]="label(p) + (p.caption ? ' — ' + p.caption : '')">
+                    [attr.aria-label]="label(p) + (p.caption ? ' — ' + p.caption : '') + (p.located ? ' (située sur le plan)' : '')">
               @if (p.url) { <img [src]="p.url" alt="" loading="lazy" /> }
               <span class="num">{{ p.number }}</span>
               @if (p.annotated) { <span class="mark" aria-hidden="true">✎</span> }
+              @if (p.located) { <span class="pin" title="Située sur le plan">📍</span> }
               @if (p.caption) { <span class="caption">{{ p.caption }}</span> }
             </button>
           </li>
@@ -72,6 +75,7 @@ export interface MediaRequest {
     }
     .num { left: 4px; }
     .mark { right: 4px; background: #c98a00; color: #000; }
+    .pin { position: absolute; right: 4px; bottom: 4px; font-size: 20px; line-height: 1; filter: drop-shadow(0 0 2px #fff); }
     .caption {
       position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 6px; font-size: 13px; line-height: 1.3;
       background: rgb(0 0 0 / .65); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

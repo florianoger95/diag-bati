@@ -74,6 +74,8 @@ export interface SectionInstance {
   sectionId: string;
   label: string;
   order: number;
+  /** Plan de référence choisi sur la fiche (sinon : premier plan candidat du modèle). */
+  referencePlanId?: string;
 }
 
 export interface VisitCursor {
@@ -98,6 +100,17 @@ export interface Visit {
   exportedAt?: number;
 }
 
+/** Observation supplémentaire d'un item (la première est `Answer.observation`). */
+export interface ObservationEntry {
+  id: string;
+  text: string;
+  defect?: { urgency: Urgency };
+  probe?: true;
+}
+
+/** Identifiant de la première observation dans `observationsOf`. */
+export const MAIN_OBSERVATION = 'main';
+
 export interface Answer {
   visitId: string;
   instanceId: string;
@@ -108,11 +121,13 @@ export interface Answer {
   defect?: { urgency: Urgency };
   /** Repère « À sonder » posé sur l'observation (cumulable avec un désordre). */
   probe?: true;
+  /** Observations 2…n, chacune avec ses repères. */
+  extra?: ObservationEntry[];
   changedInRevision: number;
   /** État repris de la visite précédente (diff « dernière mise à jour », annulation). */
-  inherited?: { value: AnswerValue; other?: string; observation: string; changedInRevision: number; probe?: true };
+  inherited?: { value: AnswerValue; other?: string; observation: string; changedInRevision: number; probe?: true; extra?: ObservationEntry[] };
   /** État à la fin de la visite initiale (diff « toutes les mises à jour »). */
-  baseline?: { value: AnswerValue; other?: string; observation: string };
+  baseline?: { value: AnswerValue; other?: string; observation: string; extra?: ObservationEntry[] };
   updatedAt: number;
 }
 
@@ -121,6 +136,8 @@ export type AnswerPatch = Partial<Pick<Answer, 'value' | 'other' | 'observation'
   defect?: { urgency: Urgency } | null;
   /** `false` retire le repère « À sonder ». */
   probe?: boolean;
+  /** Liste complète des observations supplémentaires (vide : retirées). */
+  extra?: ObservationEntry[];
 };
 
 /** Applique un patch à une réponse (même règle dans l'écran et dans la base). */
@@ -132,6 +149,20 @@ export function applyAnswerPatch(answer: Answer, patch: AnswerPatch): void {
   else if (patch.defect) answer.defect = patch.defect;
   if (patch.probe === true) answer.probe = true;
   else if (patch.probe === false) delete answer.probe;
+  if ('extra' in patch) {
+    if (patch.extra?.length) answer.extra = patch.extra;
+    else delete answer.extra;
+  }
+}
+
+/** Toutes les observations d'une réponse : la première (`main`), puis les suivantes. */
+export function observationsOf(answer: Pick<Answer, 'observation' | 'defect' | 'probe' | 'extra'> | undefined): ObservationEntry[] {
+  if (!answer) return [];
+  const main: ObservationEntry = {
+    id: MAIN_OBSERVATION, text: answer.observation ?? '',
+    ...(answer.defect ? { defect: answer.defect } : {}), ...(answer.probe ? { probe: true as const } : {}),
+  };
+  return [main, ...(answer.extra ?? [])];
 }
 
 export interface Photo {

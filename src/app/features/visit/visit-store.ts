@@ -1,5 +1,7 @@
 import { computed, effect, inject, Injectable, OnDestroy, signal, untracked } from '@angular/core';
-import { linkedNumbersKey, withPhotoNumbers } from '../../core/annotation/shapes';
+import { linkedNumbersKey, locatedPhotoIds, withPhotoNumbers } from '../../core/annotation/shapes';
+import { ReferencePlan, resolveReferencePlan } from '../../core/templates/reference-plan';
+import { TemplateCatalogService } from '../../core/services/template-catalog.service';
 import { photoNumbers, PhotoOrderConfig } from '../../core/report/photo-numbers';
 import { CabinetService } from '../../core/services/cabinet.service';
 import { AutosaveQueue } from '../../core/autosave/autosave-queue';
@@ -76,6 +78,47 @@ export class VisitStore implements OnDestroy {
   private mediaChain: Promise<void> = Promise.resolve();
   private readonly storage = inject(StorageService);
   private readonly cabinet = inject(CabinetService);
+
+  private readonly catalog = inject(TemplateCatalogService);
+
+  /** Photos situées sur un plan de la visite (pastille reliée). */
+  readonly locatedIds = computed(() => locatedPhotoIds(this.photos().filter((p) => p.kind !== 'photo')));
+
+  /**
+   * Configuration du plan de référence d'une section : celle du modèle du dossier,
+   * sinon celle du modèle livré de même templateId (dossiers créés avant le lot 5c).
+   */
+  private referenceConfig(sectionId: string): ResolvedSection['referencePlan'] {
+    const own = this.section(sectionId)?.referencePlan;
+    if (own) return own;
+    const templateId = this.project()?.templateId;
+    return this.catalog.templates().find((t) => t.templateId === templateId)?.sections.find((s) => s.id === sectionId)?.referencePlan;
+  }
+
+  /** Plan de référence d'une fiche, ses candidats, et s'il reste à choisir. */
+  referencePlan(instanceId: string): ReferencePlan {
+    const instance = this.instance(instanceId);
+    if (!instance) return { candidates: [], needsChoice: false };
+    return resolveReferencePlan({ referencePlan: this.referenceConfig(instance.sectionId) }, instance, this.photos());
+  }
+
+  /** La fiche a un plan de référence configuré dans le modèle. */
+  hasReferenceConfig(instanceId: string): boolean {
+    const instance = this.instance(instanceId);
+    return !!instance && !!this.referenceConfig(instance.sectionId);
+  }
+
+  /** Plan sur lequel situer une photo de la fiche, ou le message expliquant ce qui manque. */
+  locateTarget(instanceId: string): { plan: Photo } | { message: string; choose?: boolean } {
+    const { plan, needsChoice } = this.referencePlan(instanceId);
+    if (plan) return { plan };
+    if (needsChoice) return { message: 'Choisissez d’abord le plan de référence en haut de la fiche.', choose: true };
+    return { message: 'Aucun plan de référence : importez d’abord le plan dans « Visite sur site — généralités ».' };
+  }
+
+  setReferencePlan(instanceId: string, photoId: string | null) {
+    return this.run(() => this.repo.setReferencePlan(this.visit()!.id, instanceId, photoId));
+  }
 
   /** Numéro affiché de chaque image : ordre du rapport, une suite par nature (docs/SPEC.md §9.1). */
   readonly numbers = computed<ReadonlyMap<string, number>>(() => {
@@ -170,6 +213,7 @@ export class VisitStore implements OnDestroy {
     }
     this.queue.journal = journal;
     void this.cabinet.load(); // ordre du rapport : numéros des photos
+    void this.catalog.load(); // plans de référence des dossiers créés avec un ancien modèle
     const [project, visit, answers] = await Promise.all([
       this.repo.getProject(projectId),
       this.repo.getVisit(visitId),
@@ -432,7 +476,10 @@ export class VisitStore implements OnDestroy {
   }
 
   toView(p: Photo): PhotoView {
-    return { id: p.id, number: this.number(p), caption: p.caption, kind: p.kind, url: this.thumbUrl(p), annotated: p.annotations.length > 0 };
+    return {
+      id: p.id, number: this.number(p), caption: p.caption, kind: p.kind, url: this.thumbUrl(p),
+      annotated: p.annotations.length > 0, located: this.locatedIds().has(p.id),
+    };
   }
 
   /** Libellé de l'emplacement d'une photo (« Bâtiment A — État des tuiles »). */

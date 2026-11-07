@@ -92,6 +92,20 @@ export function renderShapes(
       case 'badge': {
         const r = Math.max(6, s.size * width);
         const [cx, cy] = [px(s.x), py(s.y)];
+        if (s.dir !== undefined) {
+          // direction de la prise de vue : flèche partant du bord de la pastille
+          const [ux, uy] = [Math.cos(s.dir), Math.sin(s.dir)];
+          const [tx, ty] = [cx + ux * r * 2.8, cy + uy * r * 2.8];
+          ctx.lineWidth = Math.max(2, r / 3);
+          ctx.beginPath();
+          ctx.moveTo(cx + ux * r * 0.8, cy + uy * r * 0.8);
+          ctx.lineTo(tx, ty);
+          const [a, b] = arrowHead(cx, cy, tx, ty, r * 1.1);
+          ctx.moveTo(a[0], a[1]);
+          ctx.lineTo(tx, ty);
+          ctx.lineTo(b[0], b[1]);
+          ctx.stroke();
+        }
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fill();

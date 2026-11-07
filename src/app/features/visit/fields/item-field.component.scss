@@ -38,4 +38,8 @@
 .badge-probe { background: #1f4e79; color: #fff; }
 .badge-probe-done { background: transparent; color: #1f4e79; border: 1px dashed #1f4e79; }
 .probe-btn { min-height: 44px; font-size: 16px; padding: 4px 14px; }
+.obs { display: flex; flex-direction: column; gap: 8px; }
+.obs-extra { padding-left: 14px; border-left: 3px solid var(--surface-2); }
+.obs-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.locate-btn { border-color: #1f4e79; color: #1f4e79; }
 .photo-placeholder { display: flex; gap: 12px; align-items: center; }

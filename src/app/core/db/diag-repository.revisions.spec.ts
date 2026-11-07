@@ -114,6 +114,31 @@ describe('mises à jour successives', () => {
     expect(reverted?.probe).toBeUndefined();
   });
 
+  it('observations supplémentaires : enregistrées, reprises dans la mise à jour, restaurées par l’annulation', async () => {
+    const { project, visit, bat } = await initialVisit();
+    const second = { id: 'o2', text: 'Rive gauche : lattis pourri.', defect: { urgency: 'immediate' as const }, probe: true as const };
+    let a = await repo.saveAnswer(visit.id, bat.id, 'couv-etat', { extra: [second] });
+    expect(a.extra).toEqual([second]);
+    expect(a.observation).toBe('Tuiles poreuses.');
+    await repo.closeVisit(visit.id);
+    const rev = await repo.createRevision(project.id, 'suite à curage');
+    a = (await repo.getAnswers(rev.id)).find((x) => x.itemId === 'couv-etat')!;
+    expect(a.inherited?.extra).toEqual([second]);
+    expect(a.baseline?.extra).toEqual([second]);
+    a = await repo.saveAnswer(rev.id, bat.id, 'couv-etat', { extra: [] });
+    expect(a.extra).toBeUndefined();
+    const reverted = await repo.revertAnswer(rev.id, bat.id, 'couv-etat');
+    expect(reverted?.extra).toEqual([second]);
+  });
+
+  it('plan de référence choisi sur une fiche', async () => {
+    const { visit, bat } = await initialVisit();
+    await repo.setReferencePlan(visit.id, bat.id, 'plan-1');
+    expect((await repo.getVisit(visit.id))!.instances.find((i) => i.id === bat.id)?.referencePlanId).toBe('plan-1');
+    await repo.setReferencePlan(visit.id, bat.id, null);
+    expect((await repo.getVisit(visit.id))!.instances.find((i) => i.id === bat.id)?.referencePlanId).toBeUndefined();
+  });
+
   it('les photos restent visibles dans la mise à jour', async () => {
     const { project, visit, bat } = await initialVisit();
     await repo.addPhoto(visit.id, {

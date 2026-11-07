@@ -312,6 +312,47 @@ describe('buildReport', () => {
     });
   });
 
+  describe('plusieurs observations par item', () => {
+    const multi = answers.map((a) => (a.itemId === 'couv-etat' && a.instanceId === 'bat-a'
+      ? { ...a, extra: [
+        { id: 'o2', text: 'Rive gauche : lattis pourri.', defect: { urgency: 'immediate' as const }, probe: true as const },
+        { id: 'o3', text: '' },
+      ] }
+      : a));
+    const m = buildReport(input({ answers: multi }));
+    const t = texts(m.blocks);
+
+    it('imprime chaque observation suivante en retrait, avec ses repères, après la ligne de l’item', () => {
+      const i = t.findIndex((x) => x.startsWith('- État des tuiles'));
+      expect(t[i]).toBe('- État des tuiles : Mauvais. Tuiles poreuses sous les chevrons* — Désordre (court terme) — photos 1, 2');
+      expect(t[i + 1]).toBe('Rive gauche : lattis pourri. — Désordre (immédiat) — À sonder');
+      const p = m.blocks.find((b) => plain(b) === t[i + 1]) as Extract<Block, { type: 'paragraph' }>;
+      expect(p.indent).toBeGreaterThan(0);
+    });
+
+    it('une entrée par observation dans la synthèse des désordres et les sondages', () => {
+      const iDefects = t.indexOf('SYNTHÈSE DES DÉSORDRES');
+      expect(t[iDefects + 2]).toBe('Immédiat');
+      expect(t[iDefects + 3]).toBe('Bâtiment A — État des tuiles : Rive gauche : lattis pourri. (photos 1, 2)');
+      const iProbes = t.indexOf('SONDAGES À RÉALISER');
+      expect(t[iProbes + 1]).toBe('Bâtiment A — État des tuiles : Rive gauche : lattis pourri. (photos 1, 2)');
+    });
+
+    it('mise à jour : seule l’observation ajoutée passe en violet', () => {
+      const rev: Visit = { ...visit, id: 'v2', revision: 1, reason: 'suite à curage' };
+      const current = answer('bat-a', 'couv-etat', {
+        visitId: 'v2', value: 'mauvais', observation: 'Tuiles poreuses.', changedInRevision: 1,
+        extra: [{ id: 'o2', text: 'Lattis sain.' }, { id: 'o3', text: 'Noue percée.' }],
+        inherited: { value: 'mauvais', observation: 'Tuiles poreuses.', changedInRevision: 0, extra: [{ id: 'o2', text: 'Lattis sain.' }] },
+        baseline: { value: 'mauvais', observation: 'Tuiles poreuses.', extra: [{ id: 'o2', text: 'Lattis sain.' }] },
+      });
+      const r = buildReport(input({ visit: rev, answers: [current], photos: [], history: [] }));
+      const para = (s: string) => r.blocks.find((b) => plain(b).startsWith(s)) as Extract<Block, { type: 'paragraph' }>;
+      expect(para('Lattis sain.').runs.some((x) => x.revised)).toBe(false);
+      expect(para('Noue percée.').runs.filter((x) => x.revised).map((x) => x.text).join('')).toBe('Noue percée.');
+    });
+  });
+
   it('liste les photos à préparer et nomme le fichier', () => {
     expect(model.photoIds.sort()).toEqual(['ph1', 'ph2', 'plan1']);
     expect(model.fileBaseName).toBe('2026-10-001 PROJET MAISON DES TILLEULS');

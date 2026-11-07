@@ -8,10 +8,21 @@
       </div>
       <input class="input caption" type="text" placeholder="Légende de l'image…" [value]="caption()"
              [readOnly]="readonly()" (input)="onCaption($any($event.target).value)" aria-label="Légende de l'image" />
-      @if (!readonly()) {
+      @if (canLocate()) {
+        <button class="btn btn-small" type="button" (click)="locateOnPlan()">📍 Situer sur le plan</button>
+      }
+      @if (!readonly() && !locating()) {
         <button class="btn btn-small btn-danger" type="button" (click)="remove()">Supprimer</button>
       }
     </header>
+
+    @if (locating()) {
+      <div class="locate-banner" role="status">
+        <span>📍 <strong>Photo {{ locatingNumber() }}</strong> : touchez l'endroit de la prise de vue, puis glissez vers ce qu'elle montre.</span>
+        <span class="spacer"></span>
+        <button class="btn btn-small" type="button" (click)="finishLocate()">Annuler</button>
+      </div>
+    }
 
     <div #stage class="stage" (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)"
          (pointerup)="onPointerUp($event)" (pointercancel)="onPointerUp($event)" (lostpointercapture)="onPointerUp($event)">
@@ -35,7 +46,7 @@
       </div>
     }
 
-    @if (canAdjust()) {
+    @if (canAdjust() && !locating()) {
       <div class="adjust" role="group" aria-label="Ajuster le plan">
         <span class="light">Ajuster le plan (avant de l'annoter) :</span>
         <button class="btn btn-small" type="button" [disabled]="adjusting()" (click)="rotate(270)">⟲ Pivoter à gauche</button>
@@ -51,7 +62,7 @@
       </div>
     }
 
-    @if (!readonly()) {
+    @if (!readonly() && !locating()) {
       <footer class="toolbar">
         <div class="group" role="toolbar" aria-label="Outils">
           @for (t of tools; track t.id) {

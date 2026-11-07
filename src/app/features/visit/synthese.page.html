@@ -8,7 +8,7 @@
     } @else {
       <p class="hint">{{ urgencyLegend }}</p>
       <ul class="list">
-        @for (d of defects(); track d.instanceId + d.itemId) {
+        @for (d of defects(); track d.instanceId + d.itemId + d.obsId) {
           <li>
             <a [routerLink]="link(d)" [fragment]="fragment(d)" class="entry">
               <span class="badge badge-danger">{{ labels[d.urgency] }}</span>
@@ -25,7 +25,7 @@
     <section class="card stack" aria-labelledby="t-sondages">
       <h2 id="t-sondages">Sondages à réaliser <span class="badge badge-probe">{{ probesLeft() }}</span></h2>
       <ul class="list">
-        @for (p of probes(); track p.instanceId + p.itemId) {
+        @for (p of probes(); track p.instanceId + p.itemId + p.obsId) {
           <li>
             <a [routerLink]="link(p)" [fragment]="fragment(p)" class="entry">
               @if (p.done) { <span class="badge">Levé</span> } @else { <span class="badge badge-probe">À sonder</span> }

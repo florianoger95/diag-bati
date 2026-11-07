@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AnnotationHistory } from './history';
 import {
-  arrowHead, bounds, duplicate, hitTest, linkedNumbersKey, nextBadge, Point, Shape, simplify, translate, usedColors, withPhotoNumbers,
+  arrowHead, bounds, duplicate, hitTest, linkedNumbersKey, locatedPhotoIds, locatePhoto, nextBadge, Point, Shape, simplify, translate, usedColors, withPhotoNumbers,
 } from './shapes';
 
 const rect: Shape = { id: 'r', kind: 'rect', x: 0.1, y: 0.2, w: 0.3, h: 0.1, color: '#E00000', width: 0.005 };
@@ -82,6 +82,18 @@ describe('trait, tampon, lettres, duplication', () => {
     const copy = duplicate(line, 'l2');
     expect(copy).toMatchObject({ id: 'l2', kind: 'line', x1: 0.23, y1: 0.63 });
     expect(line.id).toBe('l');
+  });
+
+  it('situe une photo : la pastille reliée remplace la localisation précédente', () => {
+    const shapes: Shape[] = [
+      line,
+      { id: 'old', kind: 'badge', x: 0.1, y: 0.1, n: 3, size: 0.03, color: '#000', photoId: 'p3' },
+      { id: 'autre', kind: 'badge', x: 0.2, y: 0.2, n: 4, size: 0.03, color: '#000', photoId: 'p4' },
+    ];
+    const badge: Shape = { id: 'new', kind: 'badge', x: 0.5, y: 0.5, n: 3, size: 0.03, color: '#e00000', photoId: 'p3', dir: Math.PI / 2 };
+    const out = locatePhoto(shapes, badge);
+    expect(out.map((s) => s.id)).toEqual(['l', 'autre', 'new']);
+    expect(locatedPhotoIds([{ annotations: out }, { annotations: [line] }])).toEqual(new Set(['p4', 'p3']));
   });
 
   it('les pastilles reliées à une photo prennent son numéro courant', () => {

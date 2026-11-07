@@ -37,6 +37,15 @@ describe('renderShapes', () => {
     expect(isWhite(pixel(big, 400, 200))).toBe(true);
   });
 
+  it('pastille de localisation : flèche dans la direction de la prise de vue', () => {
+    const ctx = canvas(400, 400);
+    // centre (200, 200), rayon 0,03 × 400 = 12 px, direction vers la droite (0 rad)
+    const badge: Shape = { id: 'b', kind: 'badge', x: 0.5, y: 0.5, n: 4, size: 0.03, color: '#ff0000', photoId: 'p', dir: 0 };
+    renderShapes(ctx, [badge], 400, 400);
+    expect(isRed(pixel(ctx, 225, 200))).toBe(true); // sur la flèche, à droite
+    expect(isWhite(pixel(ctx, 175, 200))).toBe(true); // rien à gauche
+  });
+
   it('trace une flèche avec sa pointe', () => {
     const ctx = canvas(200, 200);
     const shape: Shape = { id: 'a', kind: 'arrow', x1: 0.1, y1: 0.5, x2: 0.9, y2: 0.5, color: '#ff0000', width: 0.02 };

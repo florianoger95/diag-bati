@@ -9,6 +9,7 @@ import {
   collectProbes,
   instanceProgress,
   isProbeRelated,
+  observationsOf,
   isAnswered,
   isOutOfRange,
   missingRequired,
@@ -70,6 +71,16 @@ describe('validateTemplate', () => {
     const errors = validateTemplate(t).errors.join('\n');
     expect(errors).toContain('couv-patho');
     expect(errors).toContain('fac-humidite');
+  });
+
+  it('vérifie que le plan de référence désigne un item plan', () => {
+    const t = sampleTemplate();
+    t.sections[1].referencePlan = { items: ['gen-plan'] };
+    expect(validateTemplate(t).ok).toBe(true);
+    t.sections[1].referencePlan = { items: ['couv-etat', 'inconnu'] };
+    const errors = validateTemplate(t).errors.join('\n');
+    expect(errors).toContain('couv-etat');
+    expect(errors).toContain('inconnu');
   });
 
   it('vérifie le format de templateId et de version', () => {
@@ -209,6 +220,26 @@ describe('progression, obligatoires, désordres, actions', () => {
     expect(collectProbes(resolved, visit, list)[2].observation).toBe('Appui creux');
     expect(isProbeRelated(list[1])).toBe(true);
     expect(isProbeRelated(answers[0])).toBe(false);
+  });
+
+  it('plusieurs observations : liste complète, réponse, désordres et sondages par observation', () => {
+    const a = answer('bat-a', 'couv-etat', {
+      observation: 'Tuiles poreuses', defect: { urgency: 'short' },
+      extra: [
+        { id: 'o2', text: 'Rive : lattis pourri', defect: { urgency: 'immediate' }, probe: true },
+        { id: 'o3', text: 'Noue encombrée' },
+      ],
+      inherited: { value: null, observation: '', changedInRevision: 0, extra: [{ id: 'o3', text: 'Noue', probe: true }] },
+    });
+    expect(observationsOf(a).map((o) => [o.id, o.text])).toEqual([['main', 'Tuiles poreuses'], ['o2', 'Rive : lattis pourri'], ['o3', 'Noue encombrée']]);
+    const etat = sectionItems(resolved, 'couverture').find((i) => i.id === 'couv-etat')!;
+    expect(isAnswered(etat, answer('bat-a', 'couv-etat', { extra: [{ id: 'x', text: 'seule' }] }))).toBe(true);
+    expect(collectDefects(resolved, visit, [a]).map((d) => [d.obsId, d.urgency, d.observation])).toEqual([
+      ['o2', 'immediate', 'Rive : lattis pourri'],
+      ['main', 'short', 'Tuiles poreuses'],
+    ]);
+    expect(collectProbes(resolved, visit, [a]).map((p) => [p.obsId, p.done])).toEqual([['o2', false], ['o3', true]]);
+    expect(isProbeRelated(a)).toBe(true);
   });
 
   it('collecte les actions par rôle en ignorant les lignes vides', () => {

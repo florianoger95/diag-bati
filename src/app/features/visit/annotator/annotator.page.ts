@@ -17,9 +17,11 @@ import { Router } from '@angular/router';
 import { AnnotationHistory } from '../../../core/annotation/history';
 import { renderShapes } from '../../../core/annotation/render-shapes';
 import {
+  BadgeShape,
   DEFAULT_COLORS,
   duplicate,
   hitTest,
+  locatePhoto,
   nextBadge,
   STAMPS,
   LEGEND_SUGGESTIONS,
@@ -36,7 +38,11 @@ import { Photo } from '../../../core/model/data';
 import { DialogService } from '../../../core/services/dialog.service';
 import { VisitStore } from '../visit-store';
 
-export type Tool = 'select' | ShapeKind;
+/** `locate` : mode localisation d'une photo sur ce plan (pas dans la barre d'outils). */
+export type Tool = 'select' | ShapeKind | 'locate';
+
+/** Glissé minimal (px à l'écran) pour donner une direction à la localisation. */
+const MIN_DIRECTION_PX = 14;
 
 const TOOLS: { id: Tool; label: string; icon: string }[] = [
   { id: 'select', label: 'Sélectionner / déplacer', icon: '☝' },
@@ -63,6 +69,8 @@ const SAVE_DELAY = 500;
 })
 export class AnnotatorPage {
   readonly photoId = input.required<string>();
+  /** Paramètre `?locate=<id>` : photo à situer sur ce plan. */
+  readonly locate = input<string | undefined>(undefined);
   readonly store = inject(VisitStore);
   private readonly dialogs = inject(DialogService);
   private readonly router = inject(Router);
@@ -133,6 +141,21 @@ export class AnnotatorPage {
     const p = this.photo();
     return p ? this.store.number(p) : 0;
   });
+  /** Photo à situer sur ce plan (mode localisation). */
+  readonly locating = computed(() => {
+    const id = this.locate();
+    const photo = id ? this.store.photo(id) : undefined;
+    return photo && this.photo()?.kind !== 'photo' && !this.readonly() ? photo : undefined;
+  });
+  readonly locatingNumber = computed(() => {
+    const p = this.locating();
+    return p ? this.store.number(p) : 0;
+  });
+  /** Photo d'une fiche qui a un plan de référence : bouton « Situer sur le plan ». */
+  readonly canLocate = computed(() => {
+    const p = this.photo();
+    return !!p && p.kind === 'photo' && !!p.instanceId && !this.readonly() && this.store.hasReferenceConfig(p.instanceId);
+  });
   readonly nextBadge = computed(() => {
     const next = nextBadge(this.shapes(), this.badgeMode());
     return next.label ?? String(next.n);
@@ -177,6 +200,10 @@ export class AnnotatorPage {
       this.cropRect();
       untracked(() => this.requestRender());
     });
+    // mode localisation : outil dédié dès que la photo à situer est connue
+    effect(() => {
+      if (this.locating()) untracked(() => this.tool.set('locate'));
+    });
     afterNextRender(() => {
       const stage = this.stage()?.nativeElement;
       if (!stage) return;
@@ -204,7 +231,8 @@ export class AnnotatorPage {
     if (previous) URL.revokeObjectURL(previous);
     this.natural.set({ w: blob.width, h: blob.height });
     this.imageUrl.set(URL.createObjectURL(blob.image));
-    if (photo.kind !== 'photo' && !photo.annotations.length) this.tool.set('free');
+    if (this.locating()) this.tool.set('locate');
+    else if (photo.kind !== 'photo' && !photo.annotations.length) this.tool.set('free');
     this.fit();
   }
 
@@ -371,6 +399,10 @@ export class AnnotatorPage {
       case 'stamp':
         this.commit([...this.shapes(), { id: crypto.randomUUID(), kind: 'stamp', x: p[0], y: p[1], text: this.stampText(), size: this.textSize() * 0.8, color: this.color() }]);
         return;
+      case 'locate':
+        this.start = p;
+        this.draft.set(this.locationBadge(p, p));
+        return;
       default:
         this.start = p;
     }
@@ -388,6 +420,10 @@ export class AnnotatorPage {
     if (tool === 'free' && this.freePoints.length) {
       this.freePoints.push(p);
       this.draft.set({ id: 'draft', kind: 'free', points: [...this.freePoints], color: this.color(), width: this.strokeWidth() });
+      return;
+    }
+    if (tool === 'locate' && this.start) {
+      this.draft.set(this.locationBadge(this.start, p));
       return;
     }
     if (this.start) this.draft.set(this.shapeFromDrag(tool, this.start, p));
@@ -412,6 +448,16 @@ export class AnnotatorPage {
       return;
     }
     if (!this.start) return;
+    if (tool === 'locate') {
+      const badge = this.locationBadge(this.start, p);
+      this.start = null;
+      this.draft.set(null);
+      if (badge) {
+        this.commit(locatePhoto(this.shapes(), { ...badge, id: crypto.randomUUID() }), false);
+        void this.finishLocate();
+      }
+      return;
+    }
     const shape = this.shapeFromDrag(tool, this.start, p);
     this.start = null;
     this.draft.set(null);
@@ -489,6 +535,46 @@ export class AnnotatorPage {
     if (linked) this.badgeTarget.set('auto');
   }
 
+  // ---- localisation d'une photo sur le plan -------------------------------------
+
+  /** Pastille reliée à la photo à situer, posée en `at`, tournée vers `toward` si le glissé est assez long. */
+  private locationBadge(at: Point, toward: Point): BadgeShape | null {
+    const photo = this.locating();
+    if (!photo) return null;
+    const { w, h } = this.frame();
+    const [dx, dy] = [(toward[0] - at[0]) * w, (toward[1] - at[1]) * h];
+    const directed = Math.hypot(dx, dy) * this.scale() >= MIN_DIRECTION_PX;
+    return {
+      id: 'draft', kind: 'badge', x: at[0], y: at[1], n: this.store.number(photo), photoId: photo.id,
+      size: TEXT_SIZES.moyen * 0.75, color: this.color(),
+      ...(directed ? { dir: Math.atan2(dy, dx) } : {}),
+    };
+  }
+
+  /** Enregistre la localisation et revient à l'item de la photo. */
+  async finishLocate(): Promise<void> {
+    const photo = this.locating();
+    await this.flush();
+    if (photo?.instanceId) {
+      await this.router.navigate(this.store.link('i', photo.instanceId), { fragment: photo.itemId ? `item-${photo.itemId}` : undefined });
+    } else {
+      await this.close();
+    }
+  }
+
+  /** Depuis une photo : ouvrir le plan de référence de sa fiche en mode localisation. */
+  async locateOnPlan(): Promise<void> {
+    const photo = this.photo();
+    if (!photo?.instanceId) return;
+    const target = this.store.locateTarget(photo.instanceId);
+    if (!('plan' in target)) {
+      this.dialogs.notify(target.message, true);
+      return;
+    }
+    await this.flush();
+    await this.router.navigate(this.store.link('photos', target.plan.id), { queryParams: { locate: photo.id } });
+  }
+
   // ---- pivoter / recadrer un plan (avant annotation) ------------------------------
 
   private cropTo(p: Point): void {
@@ -536,12 +622,12 @@ export class AnnotatorPage {
 
   // ---- historique et enregistrement ----------------------------------------------
 
-  private commit(next: Shape[]): void {
+  private commit(next: Shape[], askColorName = true): void {
     const added = next.find((s) => !this.shapes().some((o) => o.id === s.id));
     this.shapes.set(this.history.apply(next));
     this.syncHistory();
     this.scheduleSave();
-    if (added) void this.maybeNameColor(added.color);
+    if (added && askColorName) void this.maybeNameColor(added.color);
   }
 
   undo(): void {

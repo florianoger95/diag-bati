@@ -18,7 +18,11 @@ export interface FreeShape extends Base { kind: 'free'; points: Point[]; width: 
 export interface ZoneShape extends Base { kind: 'zone'; points: Point[]; fill: 'hatch' | 'tint' }
 export interface TextShape extends Base { kind: 'text'; x: number; y: number; text: string; size: number }
 /** Pastille : numéro `n`, ou lettre `label` (A, B, C…) ; `photoId` la relie à une photo. */
-export interface BadgeShape extends Base { kind: 'badge'; x: number; y: number; n: number; label?: string; size: number; photoId?: string }
+export interface BadgeShape extends Base {
+  kind: 'badge'; x: number; y: number; n: number; label?: string; size: number; photoId?: string;
+  /** Localisation d'une photo : direction de la prise de vue (radians, repère de l'image, 0 = vers la droite). */
+  dir?: number;
+}
 
 export type Shape = ArrowShape | LineShape | RectShape | EllipseShape | FreeShape | ZoneShape | TextShape | BadgeShape | StampShape;
 
@@ -137,6 +141,18 @@ export function withPhotoNumbers(shapes: readonly Shape[], numbers: ReadonlyMap<
     return { ...s, n };
   });
   return changed ? out : shapes;
+}
+
+/** Situe une photo sur un plan : la nouvelle pastille remplace celles déjà reliées à la même photo. */
+export function locatePhoto(shapes: readonly Shape[], badge: BadgeShape): Shape[] {
+  return [...shapes.filter((s) => !(s.kind === 'badge' && s.photoId === badge.photoId)), badge];
+}
+
+/** Photos situées sur l'un des plans donnés. */
+export function locatedPhotoIds(plans: readonly { annotations: readonly Shape[] }[]): Set<string> {
+  const ids = new Set<string>();
+  for (const p of plans) for (const s of p.annotations) if (s.kind === 'badge' && s.photoId) ids.add(s.photoId);
+  return ids;
 }
 
 /** Signature des numéros affichés par les pastilles reliées (clé de cache des vignettes). */

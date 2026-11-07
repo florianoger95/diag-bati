@@ -1,7 +1,7 @@
 {
   "$schema": "./checklist-template.schema.json",
   "templateId": "diagnostic-bati-ancien",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "label": "Diagnostic du bâti ancien — étude terrain",
   "description": "Les 8 fiches terrain : généralités, couverture, façades, environnement, sous-sols, intérieur général, pièces, combles.",
   "optionSets": {
@@ -55,6 +55,7 @@
   "sections": [
     {
       "id": "generalites",
+      "referencePlan": {"items": ["gen-plan-masse"]},
       "label": "Visite sur site — généralités",
       "footer": false,
       "items": [
@@ -78,6 +79,7 @@
     },
     {
       "id": "couverture",
+      "referencePlan": {"items": ["couv-plan-types", "couv-plan-desordres", "gen-plan-toiture", "gen-plan-masse"]},
       "label": "Diagnostic couverture",
       "repeatable": { "noun": "Bâtiment", "suggestions": ["Bâtiment A", "Bâtiment B", "Bâtiment C", "Annexe", "Ensemble des couvertures"], "min": 1 },
       "items": [
@@ -156,6 +158,7 @@
     },
     {
       "id": "facades",
+      "referencePlan": {"items": ["gen-plans-facades", "gen-plan-masse"]},
       "label": "Diagnostic façades",
       "helpText": "Check-list façade par façade.",
       "repeatable": { "noun": "Façade", "suggestions": ["Façade nord", "Façade sud", "Façade est", "Façade ouest", "Pignon"], "min": 1 },
@@ -244,6 +247,7 @@
     },
     {
       "id": "environnement",
+      "referencePlan": {"items": ["gen-plan-masse"]},
       "label": "Diagnostic environnement et mitoyenneté",
       "items": [
         { "id": "env-arbres", "label": "Arbre proche de la maison", "type": "boolean", "required": false,
@@ -270,6 +274,7 @@
     },
     {
       "id": "sous-sols",
+      "referencePlan": {"items": ["gen-plan-sous-sol", "gen-plans-niveaux"]},
       "label": "Diagnostic sous-sols et fondations",
       "items": [
         { "id": "cave", "label": "Cave ou sous-sol", "type": "heading", "required": false },
@@ -314,6 +319,7 @@
     },
     {
       "id": "interieur-general",
+      "referencePlan": {"items": ["gen-plans-niveaux"]},
       "label": "Diagnostic intérieur général",
       "items": [
         { "id": "int-elec-plomberie", "label": "1 — Électricité et plomberie", "type": "heading", "required": false },
@@ -376,6 +382,7 @@
     },
     {
       "id": "pieces",
+      "referencePlan": {"items": ["gen-plans-niveaux", "gen-plan-sous-sol", "gen-plan-combles"], "choose": true},
       "label": "Diagnostic intérieur pièce par pièce",
       "repeatable": { "noun": "Pièce", "suggestions": ["Entrée", "Cuisine", "Salon", "Salle à manger", "Chambre", "Salle de bain", "WC", "Bureau", "Dégagement", "Combles aménagés"], "min": 1 },
       "items": [
@@ -461,6 +468,7 @@
     },
     {
       "id": "combles",
+      "referencePlan": {"items": ["gen-plan-combles", "gen-plan-toiture"]},
       "label": "Diagnostic combles et charpente",
       "repeatable": { "noun": "Comble", "suggestions": ["Combles", "Combles bâtiment A", "Combles bâtiment B"], "min": 1 },
       "items": [

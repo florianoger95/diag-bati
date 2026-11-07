@@ -108,7 +108,7 @@ class Builder {
   }
 
   /** Passages modifiés par une mise à jour : état de référence, ou null si rien n'est à surligner. */
-  reference(answer: Answer | undefined): { ref?: { value: Answer['value']; other?: string; observation: string } } | null {
+  reference(answer: Answer | undefined): { ref?: NonNullable<Answer['baseline']> } | null {
     const { visit, config } = this.input;
     if (!answer || !isRevised(answer, visit.revision, config.revisionHighlight)) return null;
     return { ref: config.revisionHighlight === 'latest' ? answer.inherited : answer.baseline };
@@ -235,7 +235,8 @@ function itemParagraph(b: Builder, instanceId: string, item: ResolvedItem): Run[
   const photos = b.photosOf(instanceId, item.id).filter((p) => p.kind === 'photo');
   const value = item.type === 'photo' ? '' : item.history && item.type === 'measures' ? measureHistory(b, instanceId, item) : formatAnswer(item, answer);
   const observation = (answer?.observation ?? '').trim();
-  if (!value && !observation && !answer?.defect && !answer?.probe && !photos.length) return null;
+  const extras = (answer?.extra ?? []).some((o) => o.text.trim() || o.defect || o.probe);
+  if (!value && !observation && !answer?.defect && !answer?.probe && !photos.length && !extras) return null;
   const reference = b.reference(answer);
   const refValue = reference?.ref ? formatAnswer(item, reference.ref) : undefined;
   const runs: Run[] = [text(`- ${item.label}${value || observation ? ' : ' : ''}`)];
@@ -254,6 +255,23 @@ function itemParagraph(b: Builder, instanceId: string, item: ResolvedItem): Run[
   if (answer?.probe) runs.push(text(' — À sonder', { bold: true, color: b.colors.accent }));
   if (photos.length) runs.push(text(` — ${b.photoRefs(photos)}`, { italic: true }));
   return runs;
+}
+
+/** Observations 2…n : un paragraphe en retrait chacune, avec ses repères (désordre, à sonder). */
+function extraParagraphs(b: Builder, instanceId: string, item: ResolvedItem): Block[] {
+  const answer = b.answer(instanceId, item.id);
+  const reference = b.reference(answer);
+  const blocks: Block[] = [];
+  for (const o of answer?.extra ?? []) {
+    const obs = o.text.trim();
+    if (!obs && !o.defect && !o.probe) continue;
+    const before = reference?.ref ? reference.ref.extra?.find((x) => x.id === o.id)?.text.trim() : undefined;
+    const runs: Run[] = b.revisedRuns(obs, reference, before);
+    if (o.defect) runs.push(text(`${obs ? ' ' : ''}— Désordre (${urgencyLower(o.defect.urgency)})`, { bold: true, color: b.colors.defect }));
+    if (o.probe) runs.push(text(`${obs || o.defect ? ' ' : ''}— À sonder`, { bold: true, color: b.colors.accent }));
+    blocks.push({ type: 'paragraph', runs, indent: 14 });
+  }
+  return blocks;
 }
 
 function footerBlocks(b: Builder, instanceId: string, item: ResolvedItem): Block[] {
@@ -316,7 +334,7 @@ function instanceBlocks(b: Builder, section: ResolvedSection, instanceId: string
       blocks.push(pendingHeading);
       pendingHeading = null;
     }
-    blocks.push({ type: 'paragraph', runs });
+    blocks.push({ type: 'paragraph', runs }, ...extraParagraphs(b, instanceId, item));
   }
   if (gridPhotos.length) blocks.push({ type: 'photos', photos: gridPhotos });
   blocks.push(...plans, ...footer);

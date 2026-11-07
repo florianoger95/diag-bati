@@ -1,4 +1,6 @@
-import { ActionRow, Answer, MeasureRow, OTHER_VALUE, URGENCIES, Urgency, Visit } from '../model/data';
+import { ActionRow, Answer, MeasureRow, observationsOf, OTHER_VALUE, URGENCIES, Urgency, Visit } from '../model/data';
+
+export { observationsOf } from '../model/data';
 import {
   ChecklistTemplate,
   EnumOption,
@@ -90,7 +92,7 @@ export function hasValue(item: ResolvedItem, answer: Pick<Answer, 'value' | 'oth
 /** Une réponse compte dès qu'elle a une valeur ou une observation. */
 export function isAnswered(item: ResolvedItem, answer: Answer | undefined): boolean {
   if (item.type === 'heading' || !answer) return false;
-  return hasValue(item, answer) || answer.observation.trim() !== '';
+  return hasValue(item, answer) || observationsOf(answer).some((o) => o.text.trim() !== '');
 }
 
 export function isOutOfRange(item: Pick<Item, 'min' | 'max'>, value: unknown): boolean {
@@ -166,48 +168,66 @@ const urgencyRank = (u: Urgency) => URGENCIES.indexOf(u);
 export interface DefectRef extends ItemRef {
   urgency: Urgency;
   observation: string;
+  /** Observation concernée (`main` pour la première). */
+  obsId: string;
 }
 
+/** Désordres : un par observation qui en porte un. */
 export function collectDefects(template: ResolvedTemplate, visit: Visit, answers: Answer[]): DefectRef[] {
   const index = indexAnswers(answers);
   const defects: DefectRef[] = [];
   for (const instance of sortedInstances(visit, template)) {
     for (const item of sectionItems(template, instance.sectionId)) {
-      const a = index.get(answerKey(instance.id, item.id));
-      if (!a?.defect) continue;
-      defects.push({
-        instanceId: instance.id, instanceLabel: instance.label, sectionId: instance.sectionId,
-        itemId: item.id, itemLabel: item.label, urgency: a.defect.urgency, observation: a.observation,
-      });
+      for (const o of observationsOf(index.get(answerKey(instance.id, item.id)))) {
+        if (!o.defect) continue;
+        defects.push({
+          instanceId: instance.id, instanceLabel: instance.label, sectionId: instance.sectionId,
+          itemId: item.id, itemLabel: item.label, urgency: o.defect.urgency, observation: o.text, obsId: o.id,
+        });
+      }
     }
   }
   // tri stable : par urgence, puis ordre de la visite
   return defects.sort((a, b) => urgencyRank(a.urgency) - urgencyRank(b.urgency));
 }
 
+type ProbeSource = Pick<Answer, 'observation' | 'defect' | 'probe' | 'extra' | 'inherited'>;
+
+/** Observations de la réponse qui portent le repère « À sonder », ou le portaient dans la visite précédente. */
+export function probeEntries(answer: ProbeSource | undefined): { id: string; text: string; done: boolean }[] {
+  if (!answer) return [];
+  const before = new Set(answer.inherited
+    ? observationsOf({ ...answer.inherited, probe: answer.inherited.probe }).filter((o) => o.probe).map((o) => o.id)
+    : []);
+  return observationsOf(answer)
+    .filter((o) => o.probe || before.has(o.id))
+    .map((o) => ({ id: o.id, text: o.text, done: !o.probe }));
+}
+
 /** La réponse porte le repère « À sonder », ou le portait dans la visite précédente. */
-export function isProbeRelated(answer: Pick<Answer, 'probe' | 'inherited'> | undefined): boolean {
-  return !!answer && (!!answer.probe || !!answer.inherited?.probe);
+export function isProbeRelated(answer: ProbeSource | undefined): boolean {
+  return probeEntries(answer).length > 0;
 }
 
 export interface ProbeRef extends ItemRef {
   observation: string;
+  obsId: string;
   /** Repère levé dans cette mise à jour (il était posé dans la visite précédente). */
   done: boolean;
 }
 
-/** Repères « À sonder », dans l'ordre de la visite (fiches puis items). */
+/** Repères « À sonder », dans l'ordre de la visite (fiches, items, observations). */
 export function collectProbes(template: ResolvedTemplate, visit: Visit, answers: Answer[]): ProbeRef[] {
   const index = indexAnswers(answers);
   const probes: ProbeRef[] = [];
   for (const instance of sortedInstances(visit, template)) {
     for (const item of sectionItems(template, instance.sectionId)) {
-      const a = index.get(answerKey(instance.id, item.id));
-      if (!isProbeRelated(a)) continue;
-      probes.push({
-        instanceId: instance.id, instanceLabel: instance.label, sectionId: instance.sectionId,
-        itemId: item.id, itemLabel: item.label, observation: a!.observation, done: !a!.probe,
-      });
+      for (const e of probeEntries(index.get(answerKey(instance.id, item.id)))) {
+        probes.push({
+          instanceId: instance.id, instanceLabel: instance.label, sectionId: instance.sectionId,
+          itemId: item.id, itemLabel: item.label, observation: e.text, obsId: e.id, done: e.done,
+        });
+      }
     }
   }
   return probes;

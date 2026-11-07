@@ -1,5 +1,6 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, Injector, input, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Photo } from '../../core/model/data';
 import { ResolvedItem } from '../../core/model/template';
 import { formatAnswer } from '../../core/report/build-report';
 import { isProbeRelated } from '../../core/templates/template-engine';
@@ -95,7 +96,50 @@ export class InstancePage {
   original(item: ResolvedItem): string | null {
     const inherited = this.state(item)?.inherited;
     if (!inherited) return null;
-    return [formatAnswer(item, inherited), inherited.observation.trim()].filter(Boolean).join(' — ');
+    return [formatAnswer(item, inherited), inherited.observation.trim(), ...(inherited.extra ?? []).map((e) => e.text.trim())]
+      .filter(Boolean).join(' — ');
+  }
+
+  // ---- plan de référence et localisation des photos ----------------------------
+
+  readonly reference = computed(() => this.store.referencePlan(this.instanceId()));
+  readonly hasReference = computed(() => this.store.hasReferenceConfig(this.instanceId()));
+
+  planLabel(photo: Photo): string {
+    const kind = photo.kind === 'plan' ? 'Plan' : 'Croquis';
+    return `${kind} ${this.store.number(photo)}${photo.caption ? ` — ${photo.caption}` : ` — ${this.store.photoLocation(photo)}`}`;
+  }
+
+  choosePlan(photoId: string): void {
+    void this.store.setReferencePlan(this.instanceId(), photoId || null);
+  }
+
+  /** Dernière photo de l'item pas encore située sur un plan. */
+  toLocate(item: ResolvedItem): Photo | undefined {
+    if (!this.hasReference() || this.store.readOnly()) return undefined;
+    const located = this.store.locatedIds();
+    return this.store.photosOf(this.instanceId(), item.id).filter((p) => p.kind === 'photo' && !located.has(p.id)).at(-1);
+  }
+
+  locateView(item: ResolvedItem): { number: number } | null {
+    const p = this.toLocate(item);
+    return p ? { number: this.store.number(p) } : null;
+  }
+
+  /** Ouvre le plan de référence en mode localisation de la photo. */
+  async locatePhoto(photoId: string): Promise<void> {
+    const target = this.store.locateTarget(this.instanceId());
+    if ('plan' in target) {
+      await this.router.navigate(this.store.link('photos', target.plan.id), { queryParams: { locate: photoId } });
+      return;
+    }
+    this.dialogs.notify(target.message, true);
+    if (target.choose) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  locateItem(item: ResolvedItem): void {
+    const p = this.toLocate(item);
+    if (p) void this.locatePhoto(p.id);
   }
 
   onChange(item: ResolvedItem, change: FieldChange): void {

@@ -524,7 +524,7 @@ Ordre de grandeur : 120 photos ≈ 60 Mo par dossier.
 
 | 5a | Retours terrain : légende lisible, vignettes annotées, plan importé en image, pivoter / recadrer un plan non annoté, trait droit, pastilles A-B-C, tampons, dupliquer, définitions des urgences | Plan pivoté, recadré et annoté avec les nouveaux outils |
 | 5b | Repère « À sonder » · liste des sondages · numéros des photos dans l'ordre du rapport | Item « à sonder » retrouvé dans la mise à jour, puis levé ; numéros recalculés après déplacement d'une fiche |
-| 5c | Plusieurs observations par item · localisation des photos sur le plan de référence de la fiche | — |
+| 5c | Plusieurs observations par item · localisation des photos sur le plan de référence de la fiche | Item à deux observations (désordre sur la seconde) ; photo d'une pièce située sur le plan de son niveau |
 
 ### 9.1 Lot 5b — détail
 
@@ -555,6 +555,40 @@ Ordre de grandeur : 120 photos ≈ 60 Mo par dossier.
 - Les pastilles reliées à une photo (`BadgeShape.photoId`) affichent son numéro courant à l'écran, sur les vignettes et dans le rapport.
   `withPhotoNumbers(shapes, numbers)` les réécrit avant le dessin.
 - Déplacer une fiche, ajouter ou supprimer une photo renumérote aussitôt.
+
+### 9.2 Lot 5c — détail
+
+**Plusieurs observations par item** (réponse du 07/11/2026 : les photos restent rattachées à l'item)
+- L'observation existante (`observation`, `defect`, `probe`) reste la première.
+  Les suivantes vont dans `Answer.extra: { id, text, defect?, probe? }[]`. `observationsOf(answer)` renvoie la liste complète.
+  - Aucune conversion n'est nécessaire : les dossiers, sauvegardes et mises à jour existants restent valables tels quels.
+  - C'est la « migration automatique » prévue, sans réécriture de la base.
+- `AnswerPatch.extra` remplace la liste entière ; un tableau vide la retire.
+- Mises à jour :
+  - `inherited.extra` et `baseline.extra` gardent l'état de référence ;
+  - le diff violet compare chaque observation à celle de même `id` ;
+  - « Annuler la modification » restaure la liste.
+- Écran : chaque observation a son champ, son « 🔍 À sonder », son « ⚠ Désordre » et, à partir de la deuxième, « Retirer ».
+  - « + Observation » en ajoute une.
+  - Les phrases types vont dans l'observation qui a eu le focus en dernier.
+- Rapport :
+  - la première observation reste sur la ligne de l'item ;
+  - chaque suivante forme un paragraphe en retrait, avec ses propres repères ;
+  - synthèse des désordres et sondages : une entrée par observation.
+
+**Plan de référence et localisation des photos**
+- Modèle : `Section.referencePlan = { items: string[], choose?: boolean }`. Ce sont les items plan candidats, par ordre de préférence.
+  Les plans de la fiche elle-même passent en premier, puis ceux des autres fiches (ex. « Plans des niveaux » des généralités).
+  `choose: true` (pièces) : s'il y a plusieurs candidats, le plan se choisit sur la fiche ; il n'y a pas de choix par défaut.
+- Un dossier créé avec un modèle sans `referencePlan` prend la configuration du modèle livré de même `templateId`.
+- Choix enregistré dans `SectionInstance.referencePlanId`. Sélecteur « Plan de référence » en tête de fiche dès qu'il y a plus d'un candidat.
+- Situer une photo (bouton « 📍 Situer » de l'item pour la dernière photo non située, ou « 📍 Situer sur le plan » dans l'annotateur) :
+  1. le plan s'ouvre en mode localisation ;
+  2. toucher l'endroit de la prise de vue pose la pastille ;
+  3. glisser donne la direction (`BadgeShape.dir`, angle en radians dans le repère de l'image) ;
+  4. au relâcher, la pastille reliée à la photo (`photoId`, numéro courant) remplace une localisation précédente, et l'on revient à l'item.
+- Vignette d'une photo située : repère 📍.
+- Rendu : pastille et flèche de direction de la couleur choisie, à l'écran, sur les vignettes et dans le rapport.
 
 ```
 src/app/

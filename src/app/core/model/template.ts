@@ -62,6 +62,11 @@ export interface Section {
   repeatable?: { noun: string; suggestions?: string[]; min?: number };
   /** Ajouter le sectionFooter du modèle (défaut : true). */
   footer?: boolean;
+  /**
+   * Plan sur lequel situer les photos de la fiche : items plan candidats, par ordre de préférence
+   * (plans de la fiche elle-même d'abord). `choose` : le plan se choisit sur la fiche (niveau d'une pièce).
+   */
+  referencePlan?: { items: string[]; choose?: boolean };
   items: Item[];
 }
 
