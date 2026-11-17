@@ -29,7 +29,8 @@ export interface MediaRequest {
       <ul class="thumbs" aria-label="Photos">
         @for (p of photos(); track p.id) {
           <li>
-            <button class="thumb" type="button" (click)="open.emit(p.id)"
+            <button class="thumb" type="button" (click)="touch(p)"
+                    [attr.aria-pressed]="selectable() && p.kind === 'photo' ? selected() === p.id : null"
                     [attr.aria-label]="label(p) + (p.caption ? ' — ' + p.caption : '') + (p.located ? ' (située sur le plan)' : '')">
               @if (p.url) { <img [src]="p.url" alt="" loading="lazy" /> }
               <span class="thumb-num">{{ p.number }}</span>
@@ -72,6 +73,8 @@ export interface MediaRequest {
       background: rgb(25 28 31 / .75); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .thumb:has(.caption) .thumb-flag { bottom: 26px; }
+    .thumb[aria-pressed='true'] { outline: 4px solid var(--brand); outline-offset: 3px; }
+    .thumbs { padding: 4px; }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; }
   `,
 })
@@ -81,8 +84,17 @@ export class PhotoStripComponent {
   readonly readonly = input(false);
   readonly showThumbs = input(true);
   readonly showActions = input(true);
+  /** Toucher une photo la sélectionne (« Situer photo n »), la toucher à nouveau l'ouvre. Plans et croquis s'ouvrent directement. */
+  readonly selectable = input(false);
+  readonly selected = input<string | null>(null);
   readonly add = output<MediaRequest>();
   readonly open = output<string>();
+  readonly selectPhoto = output<string>();
+
+  touch(p: PhotoView): void {
+    if (this.selectable() && p.kind === 'photo' && this.selected() !== p.id) this.selectPhoto.emit(p.id);
+    else this.open.emit(p.id);
+  }
 
   label(p: PhotoView): string {
     return `${p.kind === 'photo' ? 'Photo' : p.kind === 'plan' ? 'Plan' : 'Croquis'} ${p.number}`;

@@ -72,8 +72,9 @@ export class SynthesePage {
     return ref.instanceId ? [...this.base(), 'i', ref.instanceId] : [...this.base(), 'conditions'];
   }
 
-  fragment(ref: { itemId: string }): string {
-    return `item-${ref.itemId}`;
+  /** La question visée s'ouvre dans le panneau de détail de la fiche (lot 6b). */
+  query(ref: { instanceId: string | null; itemId: string }): Record<string, string> {
+    return ref.instanceId ? { q: ref.itemId } : {};
   }
 
   trackAction(a: ActionRef): string {

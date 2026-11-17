@@ -1,4 +1,4 @@
-import { expect, Page } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
 import JSZip from 'jszip';
 
 /** Génère le rapport Word depuis la page Rapport et renvoie son `document.xml`. */
@@ -29,19 +29,58 @@ export async function waitForOfflineReady(page: Page): Promise<void> {
   await expect(page.getByTestId('offline-ready')).toBeVisible({ timeout: 30_000 });
 }
 
-/** Ouvre une fiche ou une page de la visite (via le tiroir en portrait). */
+/** Ouvre une fiche ou une page de la visite depuis le plan de visite (sélecteur de fiche de la barre). */
 export async function openSheet(page: Page, name: string | RegExp): Promise<void> {
-  const drawer = page.getByRole('button', { name: 'Fiches', exact: true });
-  if (await drawer.isVisible()) await drawer.click();
+  await page.getByRole('button', { name: /^Fiches de la visite/ }).click();
   await page.getByRole('navigation', { name: 'Fiches de la visite' }).getByRole('link', { name }).click();
 }
 
 export async function addInstance(page: Page, button: string, label: string): Promise<void> {
-  const drawer = page.getByRole('button', { name: 'Fiches', exact: true });
-  if (await drawer.isVisible()) await drawer.click();
+  await page.getByRole('button', { name: /^Fiches de la visite/ }).click();
   await page.getByRole('button', { name: button }).click();
   await page.getByRole('button', { name: label }).click();
   await page.getByRole('button', { name: 'Ajouter', exact: true }).click();
+}
+
+/** Liste des questions de la fiche ; en portrait, elle s'ouvre en tiroir. */
+export async function showQuestions(page: Page): Promise<Locator> {
+  const list = page.getByRole('navigation', { name: 'Questions de la fiche' });
+  if (!(await list.isVisible())) await page.getByRole('button', { name: /^Questions/ }).click();
+  await expect(list).toBeVisible();
+  return list;
+}
+
+/** Ouvre une question de la fiche dans le panneau de détail (les rubriques de pied : « Synthèse de la fiche »). */
+export async function openItem(page: Page, itemId: string): Promise<Locator> {
+  const list = await showQuestions(page);
+  const row = list.locator(`[data-q="${itemId}"]`);
+  if (await row.count()) await row.click();
+  else await list.getByRole('link', { name: /Synthèse de la fiche/ }).click();
+  const item = page.locator(`#item-${itemId}`);
+  await expect(item).toBeVisible();
+  return item;
+}
+
+/** Barre d'actions du panneau de détail : elle agit sur l'observation sélectionnée. */
+export function actionBar(page: Page): Locator {
+  return page.getByRole('toolbar', { name: 'Actions sur la question' });
+}
+
+/** Pose (ou change) le désordre de l'observation sélectionnée. */
+export async function setDefect(page: Page, urgency: string): Promise<void> {
+  await actionBar(page).getByRole('button', { name: /^(Désordre|Immédiat|Court terme|Moyen terme|À surveiller)$/ }).click();
+  await page.getByRole('group', { name: 'Urgence du désordre' }).getByRole('button', { name: urgency }).click();
+}
+
+/** Ajoute des photos depuis la photothèque à la question ouverte. */
+export async function addPhotos(page: Page, files: { name: string; mimeType: string; buffer: Buffer }[] | { name: string; mimeType: string; buffer: Buffer }): Promise<void> {
+  await page.getByTestId('photo-library').setInputFiles(files);
+}
+
+/** Action du menu « … » de la barre de visite. */
+export async function sheetMenu(page: Page, action: string | RegExp): Promise<void> {
+  await page.getByRole('button', { name: 'Plus d’actions' }).click();
+  await page.getByRole('menu').getByRole('menuitem', { name: action }).click();
 }
 
 export async function createProject(page: Page, name: string): Promise<void> {

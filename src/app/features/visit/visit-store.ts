@@ -17,7 +17,8 @@ import { MediaRequest, PhotoView } from '../../shared/photo-strip.component';
 import { ResolvedItem, ResolvedSection, ResolvedTemplate } from '../../core/model/template';
 import { DataService } from '../../core/services/data.service';
 import { DialogService } from '../../core/services/dialog.service';
-import { answerKey, instanceProgress, Progress, resolveTemplate, sectionItems } from '../../core/templates/template-engine';
+import { answerKey, instanceProgress, isProbeRelated, Progress, resolveTemplate, sectionItems } from '../../core/templates/template-engine';
+import { defectsByInstance } from '../../core/templates/question-list';
 
 export interface NavInstance extends SectionInstance {
   progress: Progress;
@@ -112,7 +113,7 @@ export class VisitStore implements OnDestroy {
   locateTarget(instanceId: string): { plan: Photo } | { message: string; choose?: boolean } {
     const { plan, needsChoice } = this.referencePlan(instanceId);
     if (plan) return { plan };
-    if (needsChoice) return { message: 'Choisissez d’abord le plan de référence en haut de la fiche.', choose: true };
+    if (needsChoice) return { message: 'Choisissez d’abord le plan de référence, en tête de la liste des questions.', choose: true };
     return { message: 'Aucun plan de référence : importez d’abord le plan dans « Visite sur site — généralités ».' };
   }
 
@@ -155,6 +156,25 @@ export class VisitStore implements OnDestroy {
         })),
     }));
   });
+
+  /** Désordres de chaque fiche (plan de visite). */
+  readonly defectCounts = computed(() => {
+    const visit = this.visit();
+    const template = this.template();
+    return visit && template ? defectsByInstance(template, visit, [...this.answers().values()]) : new Map<string, number>();
+  });
+
+  /** Réponses qui portent (ou portaient) le repère « À sonder », dans toute la visite. */
+  readonly probeCount = computed(() => [...this.answers().values()].filter(isProbeRelated).length);
+
+  // ---- état d'écran partagé entre la barre de visite et la fiche (lot 6b) ----
+  /** Filtres de la liste des questions. */
+  readonly onlyChanged = signal(false);
+  readonly onlyProbes = signal(false);
+  /** Liste des questions ouverte en tiroir (portrait). */
+  readonly questionsOpen = signal(false);
+  /** Position de la question ouverte (bouton « Questions n/N » en portrait). */
+  readonly questionPos = signal<{ index: number; count: number } | null>(null);
 
   readonly totalProgress = computed<Progress>(() =>
     this.nav().flatMap((s) => s.instances).reduce(

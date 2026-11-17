@@ -1,5 +1,5 @@
 import { expect, Page, test } from '@playwright/test';
-import { createProject, openSheet, waitForOfflineReady } from './helpers';
+import { actionBar, createProject, openItem, openSheet, setDefect, sheetMenu, waitForOfflineReady } from './helpers';
 
 // mêmes plages que le test unitaire des écrans
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{2460}-\u{24FF}\u{25A0}-\u{25FF}\u{27F0}-\u{27FF}]/u;
@@ -28,15 +28,14 @@ test('mode avion : charte 3DE — polices, monogramme, urgences, cartes de l’a
 
   await createProject(page, 'PROJET LOT 6A');
   await openSheet(page, /Bâtiment 1/);
-  const etat = page.locator('#item-couv-tuiles-etat');
+  const etat = await openItem(page, 'couv-tuiles-etat');
   await etat.getByRole('button', { name: 'Mauvais' }).click();
   // une réponse choisie n'est plus rouge : le rouge est réservé aux désordres
   const bg = await etat.getByRole('button', { name: 'Mauvais' }).evaluate((b) => getComputedStyle(b).backgroundColor);
   expect(bg).toBe('rgb(6, 107, 94)');
   await etat.getByRole('textbox', { name: /^Observations/ }).fill('Tuiles poreuses.');
-  await etat.getByRole('button', { name: 'À sonder', exact: true }).click();
-  await etat.getByRole('button', { name: 'Désordre' }).click();
-  await etat.getByRole('button', { name: /Court terme/ }).click();
+  await actionBar(page).getByRole('button', { name: 'À sonder', exact: true }).click();
+  await setDefect(page, 'Court terme');
   const badge = etat.locator('.urg', { hasText: 'Court terme' });
   await expect(badge).toBeVisible();
   await expect(badge).toHaveClass(/urg--2/);
@@ -56,7 +55,8 @@ test('mode avion : charte 3DE — polices, monogramme, urgences, cartes de l’a
   await card.getByRole('link', { name: 'Reprendre la visite' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Bâtiment 1' })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Réglages' }).click();
+  // en visite, Réglages passe par le menu « … » de la barre de visite
+  await sheetMenu(page, 'Réglages');
   await expect(page.getByRole('heading', { name: 'Réglages', exact: true })).toBeVisible();
   await expectNoEmoji(page);
 });

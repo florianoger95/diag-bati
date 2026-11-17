@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createProject, drag, makeJpeg, openSheet, waitForOfflineReady } from './helpers';
+import { actionBar, createProject, drag, makeJpeg, openItem, openSheet, waitForOfflineReady } from './helpers';
 
 test('mode avion : plan en image pivoté et recadré, nouveaux outils, légende lisible, définitions des urgences', async ({ page, context }) => {
   test.setTimeout(120_000);
@@ -11,10 +11,11 @@ test('mode avion : plan en image pivoté et recadré, nouveaux outils, légende 
 
   // définitions des urgences au moment de poser un désordre
   await openSheet(page, /Bâtiment 1/);
-  const etat = page.locator('#item-couv-tuiles-etat');
-  await etat.getByRole('button', { name: /Désordre/ }).click();
-  await expect(etat.getByText(/Immédiat : action dans les prochaines semaines · Court terme : à prévoir dans le cadre des travaux/)).toBeVisible();
-  await etat.getByRole('button', { name: 'Court terme' }).click();
+  await openItem(page, 'couv-tuiles-etat');
+  await actionBar(page).getByRole('button', { name: 'Désordre' }).click();
+  const picker = page.getByRole('group', { name: 'Urgence du désordre' });
+  await expect(picker.getByText(/Immédiat : action dans les prochaines semaines · Court terme : à prévoir dans le cadre des travaux/)).toBeVisible();
+  await picker.getByRole('button', { name: 'Court terme' }).click();
 
   // plan importé en image (photothèque / Fichiers)
   await openSheet(page, 'Plans et croquis');

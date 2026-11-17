@@ -559,7 +559,7 @@ export class AnnotatorPage {
     const photo = this.locating();
     await this.flush();
     if (photo?.instanceId) {
-      await this.router.navigate(this.store.link('i', photo.instanceId), { fragment: photo.itemId ? `item-${photo.itemId}` : undefined });
+      await this.router.navigate(this.store.link('i', photo.instanceId), { queryParams: photo.itemId ? { q: photo.itemId } : {} });
     } else {
       await this.close();
     }
@@ -726,7 +726,7 @@ export class AnnotatorPage {
     await this.flush();
     const photo = this.photo();
     if (photo?.instanceId) {
-      await this.router.navigate(this.store.link('i', photo.instanceId), { fragment: photo.itemId ? `item-${photo.itemId}` : undefined });
+      await this.router.navigate(this.store.link('i', photo.instanceId), { queryParams: photo.itemId ? { q: photo.itemId } : {} });
     } else if (photo?.itemId) {
       await this.router.navigate(this.store.link('conclusion'));
     } else {

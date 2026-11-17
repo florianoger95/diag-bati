@@ -33,7 +33,7 @@ export interface FieldState {
   defect?: { urgency: Urgency };
   probe?: true;
   extra?: ObservationEntry[];
-  inherited?: { probe?: true; extra?: ObservationEntry[] };
+  inherited?: { value?: AnswerValue; probe?: true; extra?: ObservationEntry[] };
 }
 
 export interface FieldChange {
@@ -56,6 +56,7 @@ export interface FieldChange {
     '[class.probe]': 'probe()',
     '[class.revised]': 'revised()',
     '[class.heading]': "item().type === 'heading'",
+    '[class.is-detail]': 'detail()',
     '[attr.id]': "'item-' + item().id",
   },
 })
@@ -81,6 +82,11 @@ export class ItemFieldComponent {
   /** Dernière photo de l'item à situer sur le plan de référence (null : rien à situer). */
   readonly locate = input<{ number: number } | null>(null);
   readonly locateRequest = output<void>();
+  /**
+   * Panneau de détail (lot 6b) : grands choix, observations sélectionnables, photos sélectionnables ;
+   * les actions (photo, désordre, À sonder, observation, situer) sont dans la barre d'actions de la fiche.
+   */
+  readonly detail = input(false);
   private readonly dialogs = inject(DialogService);
   private readonly injector = inject(Injector);
 
@@ -92,8 +98,10 @@ export class ItemFieldComponent {
   readonly showHelp = signal(false);
   /** Observation dont le choix d'urgence est ouvert. */
   readonly defectOpen = signal<string | null>(null);
-  /** Observation qui reçoit les phrases types (dernier focus). */
+  /** Observation sélectionnée : elle reçoit les phrases types et les actions de la barre (dernier focus ou toucher). */
   readonly activeObs = signal(MAIN_OBSERVATION);
+  /** Photo sélectionnée dans le panneau de détail (« Situer photo n »). */
+  readonly selectedPhoto = signal<string | null>(null);
 
   /** Pas de désordre sur les rubriques de synthèse (commentaires, préconisations, mesures). */
   readonly canDefect = computed(() => this.allowDefect() && !this.item().role);
@@ -102,6 +110,8 @@ export class ItemFieldComponent {
   readonly canAddObservation = computed(() => this.canDefect() && this.showObservation());
   /** Toutes les observations : la première, puis les suivantes. */
   readonly entries = computed(() => observationsOf(this.state() ?? { observation: '' }));
+  readonly selectedEntry = computed(() => this.entries().find((o) => o.id === this.activeObs()) ?? this.entries()[0]);
+  readonly selectedView = computed(() => this.photos().find((p) => p.id === this.selectedPhoto()) ?? null);
   readonly probe = computed(() => this.entries().some((o) => o.probe));
   readonly hasDefect = computed(() => this.entries().some((o) => o.defect));
   /** Boutons photo discrets sur les items qui ne sont pas des items photo. */
@@ -143,6 +153,17 @@ export class ItemFieldComponent {
     if (min !== undefined) return `au moins ${min}${u}`;
     return `au plus ${max}${u}`;
   });
+
+  /** Mise à jour : la réponse d'origine est cerclée en pointillé violet. */
+  wasChosen(v: string | boolean): boolean {
+    if (!this.revised()) return false;
+    const before = this.state()?.inherited?.value;
+    return Array.isArray(before) ? (before as unknown[]).includes(v) : before === v;
+  }
+
+  selectObs(id: string): void {
+    this.activeObs.set(id);
+  }
 
   protected emit(patch: AnswerPatch, debounce = false): void {
     if (!this.readonly()) this.changed.emit({ patch, debounce });

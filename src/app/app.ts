@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { filter, first } from 'rxjs';
+import { filter, first, map } from 'rxjs';
 import { AppUpdateService } from './core/services/app-update.service';
 import { CabinetService } from './core/services/cabinet.service';
 import { DataService } from './core/services/data.service';
@@ -23,6 +24,12 @@ export class App implements OnInit {
   private readonly data = inject(DataService);
   private readonly storage = inject(StorageService);
   readonly updates = inject(AppUpdateService);
+  private readonly url = toSignal(
+    this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd), map((e) => e.urlAfterRedirects)),
+    { initialValue: '/' },
+  );
+  /** En visite, la barre de visite remplace l'en-tête de l'app (lot 6b). */
+  readonly inVisit = computed(() => /^\/dossiers\/[^/]+\/v\//.test(this.url()));
 
   constructor() {
     void inject(TemplateCatalogService).load();

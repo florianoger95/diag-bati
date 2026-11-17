@@ -715,7 +715,8 @@ Principes communs aux trois lots :
   - le panneau prend toute la largeur ;
   - « Questions 5/19 » ouvre la liste en tiroir ;
   - la question précédente / suivante devient de grands boutons nommés, en bas de l'écran ;
-  - les outils passent par « … » et par le plan de visite.
+  - les outils passent par « … » et par le plan de visite ;
+  - dans une fiche, le nom du projet quitte la barre : il figure sous « Dossier » dans le menu « … ».
 - **Conditions de visite et Conclusion :** ces pages restent des formulaires d'une page, dans la nouvelle barre.
 - **Tests E2E :**
   - nouvelle aide `openItem(page, itemId)` ;

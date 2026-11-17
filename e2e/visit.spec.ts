@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { addInstance, createProject, openSheet, waitForOfflineReady } from './helpers';
+import { addInstance, createProject, openItem, openSheet, setDefect, waitForOfflineReady } from './helpers';
 
 test('mode avion : création, saisie, désordre, ajout de bâtiment et clôture', async ({ page, context }) => {
   await waitForOfflineReady(page);
@@ -11,14 +11,13 @@ test('mode avion : création, saisie, désordre, ajout de bâtiment et clôture'
   await page.locator('#item-temperature-ext input').fill('21,6');
 
   await openSheet(page, /Bâtiment 1/);
-  const etat = page.locator('#item-couv-tuiles-etat');
+  const etat = await openItem(page, 'couv-tuiles-etat');
   await etat.getByRole('button', { name: 'Mauvais' }).click();
   await etat.getByRole('textbox').fill('Mousse en quantité au droit de la souche.');
-  await etat.getByRole('button', { name: /Désordre/ }).click();
-  await etat.getByRole('button', { name: 'Court terme' }).click();
+  await setDefect(page, 'Court terme');
   await expect(etat.getByText('Désordre · Court terme')).toBeVisible();
 
-  const preco = page.locator('#item-preconisations');
+  const preco = await openItem(page, 'preconisations');
   await preco.getByRole('button', { name: '+ Ajouter' }).click();
   await preco.getByRole('textbox').fill('Démousser la couverture');
 
@@ -41,12 +40,13 @@ test('fermer Safari en pleine saisie puis rouvrir restitue l’état exact', asy
   await createProject(page, 'PROJET REPRISE');
   await openSheet(page, /Façade 1/);
   await expect(page.getByRole('heading', { level: 1, name: 'Façade 1' })).toBeVisible();
-  const url = page.url();
 
-  const pente = page.locator('#item-fac-appuis-pente');
+  const pente = await openItem(page, 'fac-appuis-pente');
   await pente.getByRole('textbox').fill('4');
   await expect(pente.getByText(/Hors norme/)).toBeVisible();
-  const obs = page.locator('#item-fac-appuis').getByRole('textbox');
+  const obs = (await openItem(page, 'fac-appuis')).getByRole('textbox');
+  const url = page.url();
+  expect(url).toMatch(/[?&]q=fac-appuis$/);
   await obs.fill('Absence de rejingots et de larmiers');
   // Fermeture brutale juste après la frappe (avant la fin du délai d'enregistrement)
   await page.close({ runBeforeUnload: false });
@@ -54,6 +54,7 @@ test('fermer Safari en pleine saisie puis rouvrir restitue l’état exact', asy
   const reopened = await context.newPage();
   await reopened.goto('./');
   await expect(reopened).toHaveURL(url);
+  // la question ouverte fait partie de l'état restitué
   await expect(reopened.locator('#item-fac-appuis').getByRole('textbox')).toHaveValue('Absence de rejingots et de larmiers');
-  await expect(reopened.locator('#item-fac-appuis-pente').getByRole('textbox')).toHaveValue('4');
+  await expect((await openItem(reopened, 'fac-appuis-pente')).getByRole('textbox')).toHaveValue('4');
 });

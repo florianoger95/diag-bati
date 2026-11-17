@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { PDFDocument, rgb } from 'pdf-lib';
-import { createProject, drag, makeJpeg, openSheet, waitForOfflineReady } from './helpers';
+import { addPhotos, createProject, drag, makeJpeg, openItem, openSheet, waitForOfflineReady } from './helpers';
 
 test('mode avion : photo sur un item, annotation, légende et légende de photo conservées', async ({ page, context }) => {
   await waitForOfflineReady(page);
@@ -10,11 +10,14 @@ test('mode avion : photo sur un item, annotation, légende et légende de photo 
 
   await createProject(page, 'PROJET PHOTOS');
   await openSheet(page, /Bâtiment 1/);
-  const etat = page.locator('#item-couv-tuiles-etat');
-  await etat.getByTestId('photo-library').setInputFiles({ name: 'IMG_0001.jpg', mimeType: 'image/jpeg', buffer: jpeg });
+  const etat = await openItem(page, 'couv-tuiles-etat');
+  await addPhotos(page, { name: 'IMG_0001.jpg', mimeType: 'image/jpeg', buffer: jpeg });
   const thumb = etat.getByRole('button', { name: /^Photo 1/ });
   await expect(thumb).toBeVisible();
 
+  // toucher la vignette la sélectionne, la toucher à nouveau l'ouvre
+  await thumb.click();
+  await expect(thumb).toHaveAttribute('aria-pressed', 'true');
   await thumb.click();
   await expect(page.getByRole('dialog', { name: 'Annotation 1' })).toBeVisible();
   await page.getByRole('button', { name: 'Rectangle' }).click();
@@ -38,7 +41,9 @@ test('mode avion : photo sur un item, annotation, légende et légende de photo 
 
   // rechargement complet : tout est relu depuis IndexedDB
   await page.reload();
-  await page.locator('#item-couv-tuiles-etat').getByRole('button', { name: /^Photo 1/ }).click();
+  const reloaded = page.locator('#item-couv-tuiles-etat').getByRole('button', { name: /^Photo 1/ });
+  await reloaded.click();
+  await reloaded.click();
   await expect(page.locator('.annotator canvas')).toHaveAttribute('aria-label', 'Annotations : 1');
   await expect(page.getByLabel("Légende de l'image")).toHaveValue('Tuiles poreuses côté nord');
 });
@@ -70,7 +75,7 @@ test('mode avion : import de la page 2 d’un plan PDF, puis croquis', async ({ 
   await page.getByRole('button', { name: 'Annuler' }).last().click(); // ferme la proposition de légende
   await page.getByRole('button', { name: 'Retour' }).click();
 
-  await page.getByRole('button', { name: 'Croquis' }).click();
+  await page.getByRole('button', { name: 'Croquis', exact: true }).click();
   // une suite par nature : premier croquis après le plan 1
   await expect(page.getByText('Croquis 1')).toBeVisible();
   await drag(page, [0.2, 0.5], [0.8, 0.5]);

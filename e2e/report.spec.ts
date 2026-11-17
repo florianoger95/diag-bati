@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { expect, Page, test } from '@playwright/test';
 import JSZip from 'jszip';
 import { PDFDocument } from 'pdf-lib';
-import { createProject, makeJpeg, openSheet, waitForOfflineReady } from './helpers';
+import { addPhotos, createProject, makeJpeg, openItem, openSheet, setDefect, waitForOfflineReady } from './helpers';
 
 /** Récupère le fichier généré (URL blob:) côté Node. */
 async function fetchResult(page: Page, format: 'pdf' | 'docx'): Promise<Buffer> {
@@ -47,18 +47,17 @@ test('mode avion : réglages du cabinet, lexique à la saisie, rapport PDF et Wo
   await page.getByRole('link', { name: 'Dossiers', exact: true }).click();
   await createProject(page, 'PROJET RAPPORT');
   await openSheet(page, /Bâtiment 1/);
-  const etat = page.locator('#item-couv-tuiles-etat');
+  const etat = await openItem(page, 'couv-tuiles-etat');
   await etat.getByRole('button', { name: 'Mauvais' }).click();
   await etat.getByRole('textbox').fill('Chevrons attaqués près des souches du tilleul.');
   // lexique : « souches » d'arbre à ne pas marquer
   await expect(etat.getByRole('button', { name: /^Chevrons : marqué/ })).toBeVisible();
   await etat.getByRole('button', { name: /^souches : marqué/ }).click();
   await expect(etat.getByRole('button', { name: /^souches : non marqué/ })).toBeVisible();
-  await etat.getByRole('button', { name: /Désordre/ }).click();
-  await etat.getByRole('button', { name: 'Court terme' }).click();
-  await etat.getByTestId('photo-library').setInputFiles({ name: 'a.jpg', mimeType: 'image/jpeg', buffer: jpeg });
+  await setDefect(page, 'Court terme');
+  await addPhotos(page, { name: 'a.jpg', mimeType: 'image/jpeg', buffer: jpeg });
   await expect(etat.getByRole('button', { name: /^Photo 1/ })).toBeVisible();
-  const preco = page.locator('#item-preconisations');
+  const preco = await openItem(page, 'preconisations');
   await preco.getByRole('button', { name: '+ Ajouter' }).click();
   await preco.getByRole('textbox').fill('Reprendre le chéneau');
 

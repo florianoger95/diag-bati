@@ -12,6 +12,7 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
 - **Lot 5b** : repère « À sonder », liste des sondages, numéros des photos dans l'ordre du rapport.
 - **Lot 5c** : plusieurs observations par item, photos situées sur le plan de référence de la fiche.
 - **Lot 6a** : charte 3DE (couleurs, polices, monogramme, pictogrammes), accueil en cartes de dossier.
+- **Lot 6b** : visite en liste de questions + détail d'une question, barre d'actions, plan de visite, mode portrait.
 
 ## Charte 3DE (lot 6a)
 
@@ -22,9 +23,22 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
 - Le rouge est réservé aux désordres ; l'urgence se lit aussi par le nombre de barres (`<app-urgency>`).
 - Le monogramme 3DE de l'interface est dans `public/brand/`. Le logo du rapport reste importé dans les Réglages.
 
+## Visite en liste + détail (lot 6b)
+
+- Une seule barre en haut. Le **sélecteur de fiche** (« Couverture · Bâtiment 1 ») ouvre le plan de visite.
+  Le plan montre toutes les fiches, avec leur avancement, les filtres et les outils.
+- À gauche, la **liste des questions** de la fiche, avec la réponse résumée, les désordres et les vignettes.
+  En pied de liste : **Synthèse de la fiche** (commentaires, préconisations, sécurité, entretien), puis la fiche précédente ou suivante.
+- À droite, **une question à la fois**. Toucher une vignette la sélectionne ; la toucher à nouveau l'ouvre pour l'annoter.
+- La **barre d'actions** en bas agit sur l'observation sélectionnée.
+  Elle contient Photo, Photothèque, Désordre (choix de l'urgence), À sonder, + Observation et Situer photo n.
+- La question ouverte est dans l'adresse (`?q=…`). Un rechargement ou un retour de l'annotateur rouvre la même question.
+- **En portrait**, « Questions n/N » ouvre la liste en tiroir. La question précédente ou suivante est nommée en bas de l'écran.
+  Les outils, Réglages et le dossier passent par le menu « … ».
+
 ## Plusieurs observations par item
 
-- Le bouton **+ Observation** ajoute une observation à l'item. Chacune a son « À sonder » et son « Désordre ».
+- Le bouton **Observation** de la barre d'actions ajoute une observation à l'item. Chacune a son « À sonder » et son « Désordre ».
   À partir de la deuxième, chacune peut aussi être retirée (« Retirer »). Les photos restent rattachées à l'item.
 - Dans le rapport, la première observation reste sur la ligne de l'item ; les suivantes forment des paragraphes en retrait.
   La synthèse des désordres et la liste des sondages ont une entrée par observation.
@@ -35,8 +49,8 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
 - Chaque fiche a un **plan de référence**, défini dans le modèle (`referencePlan`).
   - Couverture : son propre plan, sinon le plan de toiture ou de masse.
   - Façades : les plans de façades.
-  - Pièces : le plan du niveau, à **choisir en tête de la fiche pièce** s'il y en a plusieurs.
-- Après une photo, le bouton **Situer la photo n** ouvre le plan. Dans l'annotateur d'une photo, c'est « Situer sur le plan ».
+  - Pièces : le plan du niveau, à **choisir en tête de la liste des questions** s'il y en a plusieurs.
+- Après une photo, le bouton **Situer photo n** de la barre d'actions ouvre le plan. Dans l'annotateur d'une photo, c'est « Situer sur le plan ».
   1. Touchez l'endroit de la prise de vue.
   2. Glissez vers ce que la photo montre.
   3. Une pastille fléchée au numéro de la photo est posée sur le plan, et l'on revient à l'item.

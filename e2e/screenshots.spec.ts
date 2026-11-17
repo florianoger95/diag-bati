@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { devices, expect, test } from '@playwright/test';
 import { PDFDocument, rgb } from 'pdf-lib';
-import { addInstance, createProject, drag, makeJpeg, openSheet } from './helpers';
+import { addInstance, addPhotos, createProject, drag, makeJpeg, openItem, openSheet, setDefect } from './helpers';
 
 // Captures d'écran de contrôle visuel (non lancées par défaut : SCREENSHOTS=1 npx playwright test screenshots).
 test.skip(!process.env['SCREENSHOTS'], 'captures à la demande');
@@ -14,16 +14,16 @@ test('annotateur et fiche avec photos', async ({ page }) => {
   const jpeg = await makeJpeg(page);
   await createProject(page, 'PROJET CAPTURES');
   await openSheet(page, /Bâtiment 1/);
-  const etat = page.locator('#item-couv-tuiles-etat');
+  const etat = await openItem(page, 'couv-tuiles-etat');
   await etat.getByRole('button', { name: 'Moyen' }).click();
-  await etat.getByTestId('photo-library').setInputFiles([
+  await addPhotos(page, [
     { name: 'a.jpg', mimeType: 'image/jpeg', buffer: jpeg },
     { name: 'b.jpg', mimeType: 'image/jpeg', buffer: jpeg },
   ]);
   await etat.getByRole('button', { name: /^Photo 2/ }).waitFor();
-  await etat.scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${dir}/fiche-photos.png` });
 
+  await etat.getByRole('button', { name: /^Photo 1/ }).click();
   await etat.getByRole('button', { name: /^Photo 1/ }).click();
   await page.getByRole('button', { name: 'Rectangle' }).click();
   await drag(page, [0.3, 0.3], [0.7, 0.7]);
@@ -69,7 +69,7 @@ test('rapport d’exemple (PDF et Word) pour relecture', async ({ page }) => {
 
   await openSheet(page, /Bâtiment 1/);
   await page.getByRole('heading', { level: 1 }).waitFor();
-  await page.locator('#item-couv-plan-types').getByTestId('plan-pdf').setInputFiles({ name: 'plan.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await plan.save()) });
+  await (await openItem(page, 'couv-plan-types')).getByTestId('plan-pdf').setInputFiles({ name: 'plan.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await plan.save()) });
   await page.getByRole('dialog', { name: /Annotation/ }).waitFor();
   await page.getByRole('button', { name: 'Zone' }).click();
   const box = (await page.locator('.annotator canvas').boundingBox())!;
@@ -81,21 +81,21 @@ test('rapport d’exemple (PDF et Word) pour relecture', async ({ page }) => {
   await page.waitForTimeout(700);
   await page.getByRole('button', { name: 'Retour' }).click();
 
-  await page.locator('#item-couv-type').getByRole('button', { name: '2 pans' }).click();
-  await page.locator('#item-couv-nature').getByRole('button', { name: 'Tuile mécanique' }).click();
-  const etat = page.locator('#item-couv-tuiles-etat');
+  await (await openItem(page, 'couv-type')).getByRole('button', { name: '2 pans' }).click();
+  await (await openItem(page, 'couv-nature')).getByRole('button', { name: 'Tuile mécanique' }).click();
+  const etat = await openItem(page, 'couv-tuiles-etat');
   await etat.getByRole('button', { name: 'Moyen' }).click();
   await etat.getByRole('textbox').fill('Débords de toit avec abouts de pannes et chevrons exposés. Début de déformation du lambris en sous-face, certainement dû à la pénétration de la végétation dans les interstices.');
-  await etat.getByRole('button', { name: /Désordre/ }).click();
-  await etat.getByRole('button', { name: 'Court terme' }).click();
-  await etat.getByTestId('photo-library').setInputFiles([
+  await setDefect(page, 'Court terme');
+  await addPhotos(page, [
     { name: 'a.jpg', mimeType: 'image/jpeg', buffer: jpeg }, { name: 'b.jpg', mimeType: 'image/jpeg', buffer: jpeg },
     { name: 'c.jpg', mimeType: 'image/jpeg', buffer: jpeg },
   ]);
-  await expect(etat.getByRole('button', { name: /^Photo 4/ })).toBeVisible();
-  await page.locator('#item-couv-gouttieres-etat').getByRole('button', { name: 'Bon' }).click();
-  await page.locator('#item-couv-gouttieres-etat').getByRole('textbox').fill('Les gouttières zinc, repiquées sur du PVC, sont en bon état. Pas de trace de fuite.');
-  await page.locator('#item-commentaires textarea').fill('Le chéneau entre les 2 bâtiments est encombré : nettoyage et surveillance lors des prochaines pluies.');
+  await expect(etat.getByRole('button', { name: /^Photo 3/ })).toBeVisible();
+  const gouttieres = await openItem(page, 'couv-gouttieres-etat');
+  await gouttieres.getByRole('button', { name: 'Bon' }).click();
+  await gouttieres.getByRole('textbox').fill('Les gouttières zinc, repiquées sur du PVC, sont en bon état. Pas de trace de fuite.');
+  await (await openItem(page, 'commentaires')).locator('textarea').fill('Le chéneau entre les 2 bâtiments est encombré : nettoyage et surveillance lors des prochaines pluies.');
   const preco = page.locator('#item-preconisations');
   await preco.getByRole('button', { name: '+ Ajouter' }).click();
   await preco.getByRole('textbox').last().fill('Démousser la couverture du bâtiment B et le solin de la souche');
@@ -106,21 +106,22 @@ test('rapport d’exemple (PDF et Word) pour relecture', async ({ page }) => {
 
   await addInstance(page, '+ Façade', 'Façade nord');
   await openSheet(page, /Façade 1/);
-  const appuis = page.locator('#item-fac-appuis');
+  const appuis = await openItem(page, 'fac-appuis');
   await appuis.getByRole('button', { name: 'Mauvais' }).click();
   await appuis.getByRole('textbox').fill('Absence de rejingots et de larmiers, pente de 4 % pour l’appui du RDC. Présence d’épaufrures, les fers sont à nu.');
-  await page.locator('#item-fac-appuis-pente').getByRole('textbox').fill('4');
-  const temoins = page.locator('#item-fac-humidite-releves');
+  await (await openItem(page, 'fac-appuis-pente')).getByRole('textbox').fill('4');
+  const temoins = await openItem(page, 'fac-humidite-releves');
   const inputs = temoins.getByRole('textbox');
   await inputs.nth(0).fill('7,5');
   await inputs.nth(1).fill('6,5');
   await inputs.nth(2).fill('3,8');
+  await openItem(page, 'securite');
   await page.locator('#item-securite').getByRole('button', { name: '+ Ajouter' }).click();
   await page.locator('#item-securite').getByRole('textbox').fill('Surveillance du jambage fragile de la marquise');
   await page.locator('#item-securite').getByRole('button', { name: 'Immédiat' }).click();
 
   await openSheet(page, 'Conclusion');
-  await page.getByLabel('Conclusion').fill('Fissures importantes - Les causes envisagées des fissures sont multiples.\n\nVégétation - Limiter la végétation en pied de murs.');
+  await page.getByRole('textbox', { name: 'Conclusion' }).fill('Fissures importantes - Les causes envisagées des fissures sont multiples.\n\nVégétation - Limiter la végétation en pied de murs.');
   await page.waitForTimeout(600);
 
   await openSheet(page, 'Rapport PDF / Word');

@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { expect, test } from '@playwright/test';
-import { createProject, docxXml, makeJpeg, openSheet, waitForOfflineReady } from './helpers';
+import { addPhotos, createProject, docxXml, makeJpeg, openItem, openSheet, waitForOfflineReady } from './helpers';
 
 test('mode avion : mise à jour après curage, repère violet, annulation et rapport révisé', async ({ page, context }) => {
   test.setTimeout(120_000);
@@ -11,7 +11,7 @@ test('mode avion : mise à jour après curage, repère violet, annulation et rap
 
   await createProject(page, 'PROJET MISE A JOUR');
   await openSheet(page, /Bâtiment 1/);
-  await page.locator('#item-couv-tuiles-etat').getByRole('textbox').fill('Tuiles poreuses.');
+  await (await openItem(page, 'couv-tuiles-etat')).getByRole('textbox').fill('Tuiles poreuses.');
   await openSheet(page, 'Synthèse et clôture');
   await page.getByRole('button', { name: 'Clôturer la visite' }).click();
   await page.getByRole('link', { name: 'Mise à jour ou sauvegarde' }).click();
@@ -21,13 +21,13 @@ test('mode avion : mise à jour après curage, repère violet, annulation et rap
   await expect(page.getByText('Mise à jour 1 — suite à curage')).toBeVisible();
 
   await openSheet(page, /Bâtiment 1/);
-  const etat = page.locator('#item-couv-tuiles-etat');
+  const etat = await openItem(page, 'couv-tuiles-etat');
   const obs = etat.getByRole('textbox');
   await expect(obs).toHaveValue('Tuiles poreuses.');
   await obs.fill('Tuiles poreuses. Le curage révèle un lattis pourri.');
   await expect(etat.getByText('Modifié dans cette mise à jour')).toBeVisible();
   await etat.getByRole('button', { name: 'Voir l’original' }).click();
-  await expect(etat.getByText('Avant cette mise à jour :')).toBeVisible();
+  await expect(etat.getByText('Original — avant cette mise à jour')).toBeVisible();
 
   // annulation puis nouvelle modification
   await etat.getByRole('button', { name: 'Annuler la modification' }).click();
@@ -57,9 +57,9 @@ test('mode avion : sauvegarde d’un dossier, suppression, restauration puis cop
 
   await createProject(page, 'PROJET SAUVEGARDE');
   await openSheet(page, /Bâtiment 1/);
-  const etat = page.locator('#item-couv-tuiles-etat');
+  const etat = await openItem(page, 'couv-tuiles-etat');
   await etat.getByRole('button', { name: 'Mauvais' }).click();
-  await etat.getByTestId('photo-library').setInputFiles({ name: 'a.jpg', mimeType: 'image/jpeg', buffer: jpeg });
+  await addPhotos(page, { name: 'a.jpg', mimeType: 'image/jpeg', buffer: jpeg });
   await expect(etat.getByRole('button', { name: /^Photo 1/ })).toBeVisible();
 
   await page.getByRole('link', { name: 'Accueil — dossiers' }).click();
@@ -81,7 +81,7 @@ test('mode avion : sauvegarde d’un dossier, suppression, restauration puis cop
   await page.getByRole('button', { name: 'Restaurer', exact: true }).click();
   await expect(page.getByRole('heading', { name: /PROJET SAUVEGARDE/ })).toBeVisible();
   await page.getByRole('link', { name: /Visite initiale/ }).click();
-  // la position de saisie fait partie de la sauvegarde : retour direct sur la fiche Bâtiment 1
+  // la position de saisie fait partie de la sauvegarde : retour direct sur la question de la fiche Bâtiment 1
   await expect(page.getByRole('heading', { level: 1, name: 'Bâtiment 1' })).toBeVisible();
   await expect(page.locator('#item-couv-tuiles-etat').getByRole('button', { name: /^Photo 1/ })).toBeVisible();
   await expect(page.locator('#item-couv-tuiles-etat').getByRole('button', { name: 'Mauvais' })).toHaveAttribute('aria-pressed', 'true');

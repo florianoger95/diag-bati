@@ -1,14 +1,21 @@
 @let it = item();
+@let lg = detail();
 @if (it.type === 'heading') {
   <h3 class="heading-title overline">{{ it.label }}</h3>
   @if (it.helpText) { <p class="hint">{{ it.helpText }}</p> }
 } @else {
   <div class="head">
-    <span class="label" [id]="'label-' + it.id">
-      {{ it.label }}@if (it.required) {<span class="req" aria-label="obligatoire"> *</span>}
-    </span>
-    @if (revised()) {
-      <span class="badge badge-revision">{{ original() === null ? 'Nouveau' : 'Modifié' }} dans cette mise à jour</span>
+    @if (lg) {
+      <h2 class="detail-title" [id]="'label-' + it.id">
+        {{ it.label }}@if (it.required) {<span class="req" aria-label="obligatoire"> *</span>}
+      </h2>
+    } @else {
+      <span class="label" [id]="'label-' + it.id">
+        {{ it.label }}@if (it.required) {<span class="req" aria-label="obligatoire"> *</span>}
+      </span>
+      @if (revised()) {
+        <span class="badge badge-revision">{{ original() === null ? 'Nouveau' : 'Modifié' }} dans cette mise à jour</span>
+      }
     }
     <span class="spacer"></span>
     @if (it.helpText) {
@@ -18,24 +25,45 @@
   </div>
   @if (showHelp() && it.helpText) { <p class="help">{{ it.helpText }}</p> }
 
+  @if (lg && revised()) {
+    <div class="revision-bar" role="group" aria-label="Modification">
+      <app-icon name="modif" />
+      <span>{{ original() === null ? 'Nouveau' : 'Modifié' }} dans cette mise à jour</span>
+      <span class="spacer"></span>
+      @if (!readonly()) {
+        @if (original() !== null) {
+          <button class="btn btn-small" type="button" (click)="showOriginal.set(!showOriginal())" [attr.aria-expanded]="showOriginal()">
+            <app-icon name="eye" size="sm" />{{ showOriginal() ? 'Masquer l’original' : 'Voir l’original' }}
+          </button>
+        }
+        <button class="btn btn-small" type="button" (click)="revert.emit()"><app-icon name="revert" size="sm" />
+          {{ original() === null ? 'Effacer cette réponse' : 'Annuler la modification' }}
+        </button>
+      }
+    </div>
+    @if (showOriginal() && original() !== null) {
+      <p class="original"><span class="overline">Original — avant cette mise à jour</span><br />{{ original() || '(vide)' }}</p>
+    }
+  }
+
   <div class="control" [attr.aria-labelledby]="'label-' + it.id">
     @switch (it.type) {
       @case ('boolean') {
         <div class="choices" role="group">
-          <button class="choice" type="button" [attr.aria-pressed]="value() === true" [disabled]="readonly()"
+          <button class="choice" [class.choice-lg]="lg" [class.was-chosen]="wasChosen(true)" type="button" [attr.aria-pressed]="value() === true" [disabled]="readonly()"
                   (click)="toggleSingle(true)">Oui</button>
-          <button class="choice" type="button" [attr.aria-pressed]="value() === false" [disabled]="readonly()"
+          <button class="choice" [class.choice-lg]="lg" [class.was-chosen]="wasChosen(false)" type="button" [attr.aria-pressed]="value() === false" [disabled]="readonly()"
                   (click)="toggleSingle(false)">Non</button>
         </div>
       }
       @case ('enum') {
         <div class="choices" role="group">
           @for (o of it.options; track o.value) {
-            <button class="choice" type="button" [class.warn]="o.warn" [attr.aria-pressed]="value() === o.value"
+            <button class="choice" [class.choice-lg]="lg" [class.was-chosen]="wasChosen(o.value)" type="button" [class.warn]="o.warn" [attr.aria-pressed]="value() === o.value"
                     [disabled]="readonly()" (click)="toggleSingle(o.value)">{{ o.label }}</button>
           }
           @if (it.allowOther) {
-            <button class="choice" type="button" [attr.aria-pressed]="value() === OTHER" [disabled]="readonly()"
+            <button class="choice" [class.choice-lg]="lg" [class.was-chosen]="wasChosen(OTHER)" type="button" [attr.aria-pressed]="value() === OTHER" [disabled]="readonly()"
                     (click)="toggleSingle(OTHER)">Autre…</button>
           }
         </div>
@@ -47,7 +75,7 @@
       @case ('multi') {
         <div class="choices" role="group">
           @for (o of it.options; track o.value) {
-            <button class="choice chip" type="button" [class.warn]="o.warn" [attr.aria-pressed]="multiValue().includes(o.value)"
+            <button class="choice chip" [class.choice-lg]="lg" [class.was-chosen]="wasChosen(o.value)" type="button" [class.warn]="o.warn" [attr.aria-pressed]="multiValue().includes(o.value)"
                     [disabled]="readonly()" (click)="toggleMulti(o.value)">{{ o.label }}</button>
           }
         </div>
@@ -89,12 +117,74 @@
       @case ('photo') {
         @if (withPhotos()) {
           <app-photo-strip [photos]="photos()" [mode]="it.photoKind === 'plan' ? 'plan' : 'photo'" [readonly]="readonly()"
-                           (add)="media.emit($event)" (open)="openPhoto.emit($event)" />
+                           [showActions]="!lg || it.photoKind === 'plan'" [selectable]="lg" [selected]="selectedPhoto()"
+                           (selectPhoto)="selectedPhoto.set($event)" (add)="media.emit($event)" (open)="openPhoto.emit($event)" />
         }
       }
     }
   </div>
 
+  @if (lg) {
+    <!-- panneau de détail : photos, puis observations sélectionnables -->
+    @if (compactPhotos() && photos().length) {
+      <h3 class="section-title">Photos · {{ photos().length }}</h3>
+      <app-photo-strip [photos]="photos()" [showActions]="false" [selectable]="true" [selected]="selectedPhoto()"
+                       (selectPhoto)="selectedPhoto.set($event)" (open)="openPhoto.emit($event)" />
+    }
+    @if (selectedView(); as p) {
+      <p class="hint">Photo {{ p.number }} sélectionnée : touchez-la à nouveau pour l'annoter.</p>
+    }
+    @if (showObservation()) {
+      <h3 class="section-title">Observations</h3>
+      @for (o of entries(); track o.id; let i = $index) {
+        <div class="obs" role="group" [attr.aria-label]="obsLabel(i)" [attr.aria-selected]="selectedEntry().id === o.id"
+             (focusin)="selectObs(o.id)" (click)="selectObs(o.id)">
+          <div class="obs-head">
+            <textarea class="input obs-text observation" rows="1" [placeholder]="i ? 'Autre observation…' : 'Observations…'" [appAutoGrow]="o.text"
+                      [id]="'obs-' + it.id + '-' + o.id" [value]="o.text" [readOnly]="readonly()"
+                      [attr.aria-label]="(i ? 'Observation ' + (i + 1) : 'Observations') + ' — ' + it.label"
+                      (input)="setEntryText(o.id, $any($event.target).value)"></textarea>
+            <div class="obs-marks">
+              @if (o.defect; as d) { <app-urgency [urgency]="d.urgency" prefix="Désordre · " /> }
+              @if (o.probe) {
+                <span class="tag-sonder"><app-icon name="sonder" size="sm" />À sonder</span>
+              } @else if (probeDone(o)) {
+                <span class="tag-sonder is-done">Était à sonder</span>
+              }
+              @if (i > 0 && !readonly() && selectedEntry().id === o.id) {
+                <button class="btn btn-small btn-ghost" type="button" (click)="removeObservation(o.id); $event.stopPropagation()"
+                        [attr.aria-label]="'Retirer l’observation ' + (i + 1)"><app-icon name="x" size="sm" />Retirer</button>
+              }
+            </div>
+          </div>
+          @if (termsOf(o.id).length) {
+            <div class="obs-tags" aria-label="Termes du lexique marqués d'un astérisque dans le rapport">
+              @for (t of termsOf(o.id); track t.index) {
+                <button class="term" type="button" [class.off]="t.excluded" [disabled]="readonly()" (click)="toggleTerm(o.id, t.index)"
+                        [attr.aria-pressed]="!t.excluded"
+                        [attr.aria-label]="t.word + (t.excluded ? ' : non marqué, toucher pour marquer' : ' : marqué, toucher pour ne pas marquer ici')">
+                  {{ t.word }}{{ t.excluded ? '' : '*' }}
+                </button>
+              }
+            </div>
+          }
+          @if (!readonly() && snippetTarget() === 'observation' && selectedEntry().id === o.id) {
+            <div class="snippets">
+              @for (s of it.snippets; track s) {
+                <button class="choice chip chip-suggest snippet" type="button" (click)="insertSnippet(s)">+ {{ s }}</button>
+              }
+            </div>
+          }
+        </div>
+      }
+    } @else if (!readonly() && snippetTarget() === 'value') {
+      <div class="snippets">
+        @for (s of it.snippets; track s) {
+          <button class="choice chip chip-suggest snippet" type="button" (click)="insertSnippet(s)">+ {{ s }}</button>
+        }
+      </div>
+    }
+  } @else {
   @if (showObservation() || canDefect()) {
     @for (o of entries(); track o.id; let i = $index) {
       <div class="obs" [class.obs-extra]="i > 0" role="group" [attr.aria-label]="obsLabel(i)">
@@ -197,5 +287,6 @@
         <button class="btn btn-small" type="button" (click)="addObservation()"><app-icon name="plus" size="sm" />Observation</button>
       }
     </div>
+  }
   }
 }

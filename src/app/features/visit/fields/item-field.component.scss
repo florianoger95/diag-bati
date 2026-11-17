@@ -46,3 +46,17 @@
 .snippet { font-size: 15px; min-height: 40px; padding: 4px 12px; }
 .locate-btn { color: var(--primary-strong); }
 .photo-placeholder { display: flex; gap: 12px; align-items: center; }
+
+/* Panneau de détail (lot 6b) : pas de carte, une question à la fois */
+:host(.is-detail), :host(.is-detail.defect), :host(.is-detail.probe), :host(.is-detail.revised) {
+  gap: var(--s-4); padding: 0; border: 0; background: transparent; box-shadow: none;
+}
+:host(.is-detail) .head { align-items: flex-start; flex-wrap: nowrap; }
+:host(.is-detail) .detail-title { flex: 1; min-width: 0; }
+:host(.is-detail) .section-title { margin: 4px 0 -6px; }
+:host(.is-detail) .obs { cursor: text; }
+:host(.is-detail) .obs-head textarea { font-size: var(--fs-body); }
+.obs-marks { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+.obs-marks .urg, .obs-marks .tag-sonder { white-space: nowrap; }
+.snippets { display: flex; flex-wrap: wrap; gap: 6px; }
+.original .overline { display: inline-block; margin-bottom: 4px; }

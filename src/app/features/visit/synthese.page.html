@@ -10,7 +10,7 @@
       <ul class="list">
         @for (d of defects(); track d.instanceId + d.itemId + d.obsId) {
           <li>
-            <a [routerLink]="link(d)" [fragment]="fragment(d)" class="entry">
+            <a [routerLink]="link(d)" [queryParams]="query(d)" class="entry">
               <app-urgency [urgency]="d.urgency" [solid]="true" />
               <span><strong>{{ d.instanceLabel }}</strong> — {{ d.itemLabel }}</span>
               @if (d.observation) { <span class="entry-obs">{{ d.observation }}</span> }
@@ -27,7 +27,7 @@
       <ul class="list">
         @for (p of probes(); track p.instanceId + p.itemId + p.obsId) {
           <li>
-            <a [routerLink]="link(p)" [fragment]="fragment(p)" class="entry">
+            <a [routerLink]="link(p)" [queryParams]="query(p)" class="entry">
               @if (p.done) { <span class="badge">Levé</span> } @else { <span class="tag-sonder"><app-icon name="sonder" size="sm" />À sonder</span> }
               <span><strong>{{ p.instanceLabel }}</strong> — {{ p.itemLabel }}</span>
               @if (p.observation) { <span class="entry-obs">{{ p.observation }}</span> }
@@ -46,7 +46,7 @@
       <ul class="list">
         @for (a of safety(); track trackAction(a)) {
           <li>
-            <a [routerLink]="link(a)" [fragment]="fragment(a)" class="entry">
+            <a [routerLink]="link(a)" [queryParams]="query(a)" class="entry">
               <app-urgency [urgency]="a.urgency" />
               <span>{{ a.text }}</span>
               <span class="hint">{{ a.instanceLabel }}</span>
@@ -67,7 +67,7 @@
       <ul class="list">
         @for (a of g.items; track trackAction(a)) {
           <li>
-            <a [routerLink]="link(a)" [fragment]="fragment(a)" class="entry">
+            <a [routerLink]="link(a)" [queryParams]="query(a)" class="entry">
               <span>{{ a.text }}</span>
               <span class="hint">{{ a.instanceLabel }}</span>
             </a>
@@ -82,7 +82,7 @@
       <h2 id="t-entretien">Mesures d'entretien</h2>
       <ul class="list">
         @for (a of maintenance(); track trackAction(a)) {
-          <li><a [routerLink]="link(a)" [fragment]="fragment(a)" class="entry"><span>{{ a.text }}</span><span class="hint">{{ a.instanceLabel }}</span></a></li>
+          <li><a [routerLink]="link(a)" [queryParams]="query(a)" class="entry"><span>{{ a.text }}</span><span class="hint">{{ a.instanceLabel }}</span></a></li>
         }
       </ul>
     </section>
@@ -96,7 +96,7 @@
     } @else {
       <ul class="list">
         @for (m of missing(); track (m.instanceId ?? '') + m.itemId) {
-          <li><a [routerLink]="link(m)" [fragment]="fragment(m)" class="entry"><strong>{{ m.instanceLabel }}</strong> — {{ m.itemLabel }}</a></li>
+          <li><a [routerLink]="link(m)" [queryParams]="query(m)" class="entry"><strong>{{ m.instanceLabel }}</strong> — {{ m.itemLabel }}</a></li>
         }
       </ul>
     }

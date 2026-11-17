@@ -4,93 +4,179 @@
     <a class="btn" routerLink="/"><app-icon name="left" />Dossiers</a>
   </div>
 } @else if (store.visit(); as visit) {
-  <div class="visit-bar">
-    <button class="btn btn-small drawer-btn" type="button" (click)="drawerOpen.set(!drawerOpen())"
-            [attr.aria-expanded]="drawerOpen()" aria-controls="visit-nav"><app-icon name="menu" />Fiches</button>
-    <a class="title" [routerLink]="['/dossiers', projectId()]">
-      <strong>{{ store.project()?.fields?.['projet'] || store.project()?.reference }}</strong>
-      <span class="hint">{{ visit.revision === 0 ? 'Visite initiale' : 'Mise à jour ' + visit.revision + (visit.reason ? ' — ' + visit.reason : '') }}</span>
-    </a>
-    <span class="spacer"></span>
-    <span class="save" role="status" aria-live="polite">
-      @if (store.mediaBusy() > 0) {
-        <span class="save-state is-busy"><app-icon name="image" size="sm" />Traitement de {{ store.mediaBusy() }} image{{ store.mediaBusy() > 1 ? 's' : '' }}…</span>
+  <div class="visit">
+    <header class="appbar">
+      <a class="brand" routerLink="/" aria-label="Accueil — dossiers">
+        <img class="appbar-logo" src="brand/monogramme-blanc.png" alt="3DE" />
+      </a>
+      @if (store.questionPos(); as pos) {
+        <button class="questions-btn" type="button" (click)="toggleQuestions()" [attr.aria-expanded]="store.questionsOpen()">
+          <app-icon name="menu" />Questions <span class="count">{{ pos.index + 1 }}/{{ pos.count }}</span>
+        </button>
       }
-      @if (store.saveError()) {
-        <span class="save-state is-error"><app-icon name="error" size="sm" />Non enregistré</span>
-      } @else if (store.pendingWrites() > 0) {
-        <span class="save-state is-busy"><app-icon name="sync" size="sm" />Enregistrement…</span>
-      } @else {
-        <span class="save-state is-saved"><app-icon name="check" size="sm" />Enregistré</span>
-      }
-    </span>
-  </div>
-  @if (store.newerVisitId(); as newer) {
-    <div class="banner banner-info readonly">
-      Visite antérieure : lecture seule (une mise à jour plus récente existe).
+      <button class="picker" type="button" (click)="togglePlan()" [attr.aria-expanded]="planOpen()" aria-haspopup="true"
+              [attr.aria-label]="'Fiches de la visite — ' + title() + (progress() ? ' ' + progress()!.answered + '/' + progress()!.total : '')">
+        <span class="picker-title">{{ title() }}</span>
+        @if (progress(); as p) { <span class="count">{{ p.answered }}/{{ p.total }}</span> }
+        <app-icon [name]="planOpen() ? 'up' : 'down'" />
+      </button>
+      <a class="title" [routerLink]="['/dossiers', projectId()]">
+        <span class="title-project">{{ store.project()?.fields?.['projet'] || store.project()?.reference }}</span>
+        <span class="appbar-meta">{{ visitLabel() }}</span>
+      </a>
       <span class="spacer"></span>
-      <a class="btn btn-small" [routerLink]="['/dossiers', visit.projectId, 'v', newer]">Ouvrir la dernière mise à jour</a>
-    </div>
-  } @else if (store.readOnly()) {
-    <div class="banner banner-info readonly">
-      Visite clôturée : lecture seule.
-      <span class="spacer"></span>
-      <a class="btn btn-small" [routerLink]="store.link('synthese')">Rouvrir depuis la synthèse</a>
-    </div>
-  }
-
-  <div class="layout">
-    @if (drawerOpen()) { <div class="scrim" (click)="drawerOpen.set(false)"></div> }
-    <nav id="visit-nav" class="nav" [class.open]="drawerOpen()" aria-label="Fiches de la visite">
-      <div class="progress" aria-label="Progression">
-        <div class="bar"><span [style.width.%]="store.totalProgress().total ? (100 * store.totalProgress().answered / store.totalProgress().total) : 0"></span></div>
-        <span class="hint">{{ store.totalProgress().answered }} / {{ store.totalProgress().total }} réponses</span>
-      </div>
-      <a class="nav-link" [routerLink]="store.link('conditions')" routerLinkActive="active">Conditions de visite</a>
-      @for (nav of store.nav(); track nav.section.id) {
-        @if (nav.section.repeatable) {
-          <div class="group">
-            <span class="group-title">{{ nav.section.label }}</span>
-            @for (i of nav.instances; track i.id) {
-              <a class="nav-link sub" [routerLink]="store.link('i', i.id)" routerLinkActive="active">
-                <span>{{ i.label }}</span>
-                <span class="count" [class.done]="i.progress.total > 0 && i.progress.answered === i.progress.total">
-                  {{ i.progress.answered }}/{{ i.progress.total }}
-                </span>
-              </a>
+      <nav class="tools" aria-label="Outils de la visite">
+        <a class="appbar-tool" [routerLink]="store.link('plans')" routerLinkActive #r1="routerLinkActive" [attr.aria-current]="r1.isActive ? 'page' : null"><app-icon name="plans" />Plans</a>
+        <a class="appbar-tool" [routerLink]="store.link('photos')" routerLinkActive #r2="routerLinkActive" [routerLinkActiveOptions]="{ exact: true }" [attr.aria-current]="r2.isActive ? 'page' : null"><app-icon name="photos" />Photos</a>
+        <a class="appbar-tool" [routerLink]="store.link('conclusion')" routerLinkActive #r3="routerLinkActive" [attr.aria-current]="r3.isActive ? 'page' : null"><app-icon name="pen" />Conclusion</a>
+        <a class="appbar-tool" [routerLink]="store.link('synthese')" routerLinkActive #r4="routerLinkActive" [attr.aria-current]="r4.isActive ? 'page' : null"><app-icon name="list" />Synthèse</a>
+        <a class="appbar-tool" [routerLink]="store.link('rapport')" routerLinkActive #r5="routerLinkActive" [attr.aria-current]="r5.isActive ? 'page' : null"><app-icon name="doc" />Rapport</a>
+      </nav>
+      <span class="save" role="status" aria-live="polite">
+        @if (store.mediaBusy() > 0) {
+          <span class="save-state is-busy media-busy"><app-icon name="image" size="sm" />Traitement de {{ store.mediaBusy() }} image{{ store.mediaBusy() > 1 ? 's' : '' }}…</span>
+        }
+        @if (store.saveError()) {
+          <span class="save-state is-error"><app-icon name="error" size="sm" /><span class="save-label">Non enregistré</span></span>
+        } @else if (store.pendingWrites() > 0) {
+          <span class="save-state is-busy"><app-icon name="sync" size="sm" /><span class="save-label">Enregistrement…</span></span>
+        } @else {
+          <span class="save-state is-saved"><app-icon name="check" size="sm" /><span class="save-label">Enregistré</span></span>
+        }
+      </span>
+      <div class="menu-wrap">
+        <button class="appbar-tool more" type="button" aria-label="Plus d’actions" aria-haspopup="menu"
+                [attr.aria-expanded]="menuOpen()" (click)="toggleMenu()"><app-icon name="more" /></button>
+        @if (menuOpen()) {
+          <div class="menu" role="menu" aria-label="Plus d’actions">
+            <div class="menu-tools">
+              <a role="menuitem" [routerLink]="store.link('plans')"><app-icon name="plans" />Plans et croquis</a>
+              <a role="menuitem" [routerLink]="store.link('photos')"><app-icon name="photos" />Photos</a>
+              <a role="menuitem" [routerLink]="store.link('conclusion')"><app-icon name="pen" />Conclusion</a>
+              <a role="menuitem" [routerLink]="store.link('synthese')"><app-icon name="list" />Synthèse et clôture</a>
+              <a role="menuitem" [routerLink]="store.link('rapport')"><app-icon name="doc" />Rapport PDF / Word</a>
+              <hr />
+            </div>
+            @if (instance(); as inst) {
+              @if (section()?.repeatable && !store.readOnly()) {
+                <button role="menuitem" type="button" (click)="rename()"><app-icon name="pen" />Renommer la fiche</button>
+                <button role="menuitem" type="button" (click)="duplicate()"><app-icon name="copy" />Dupliquer la fiche</button>
+                @if (siblings().length > 1) {
+                  <button role="menuitem" type="button" (click)="move(-1)" [disabled]="siblings()[0]?.id === inst.id"><app-icon name="up" />Monter dans la liste</button>
+                  <button role="menuitem" type="button" (click)="move(1)" [disabled]="siblings().at(-1)?.id === inst.id"><app-icon name="down" />Descendre dans la liste</button>
+                }
+                <button role="menuitem" type="button" class="danger" (click)="remove()"><app-icon name="trash" />Supprimer la fiche</button>
+              }
+              @if (reference(); as ref) {
+                @if (ref.plan && ref.candidates.length > 1) {
+                  <label class="menu-field">
+                    <span class="hint"><app-icon name="pin" size="sm" />Plan de référence de la fiche</span>
+                    <select class="input" [value]="ref.plan.id" [disabled]="store.readOnly()"
+                            (change)="choosePlan($any($event.target).value)" aria-label="Plan de référence de la fiche">
+                      @for (p of ref.candidates; track p.id) { <option [value]="p.id">{{ planLabel(p) }}</option> }
+                    </select>
+                  </label>
+                }
+              }
+              <hr />
             }
-            @if (!store.readOnly()) {
-              <button class="btn btn-small btn-ghost add" type="button" (click)="addInstance(nav)" [attr.aria-label]="'+ ' + nav.section.repeatable.noun">
-                <app-icon name="plus" size="sm" />{{ nav.section.repeatable.noun }}
-              </button>
+            <a role="menuitem" [routerLink]="['/dossiers', projectId()]"><app-icon name="folder" /><span class="menu-project">Dossier<span class="hint">{{ store.project()?.fields?.['projet'] || store.project()?.reference }}</span></span></a>
+            <a role="menuitem" routerLink="/reglages"><app-icon name="gear" />Réglages</a>
+          </div>
+        }
+      </div>
+    </header>
+
+    @if (store.newerVisitId(); as newer) {
+      <div class="banner banner-info readonly">
+        Visite antérieure : lecture seule (une mise à jour plus récente existe).
+        <span class="spacer"></span>
+        <a class="btn btn-small" [routerLink]="['/dossiers', visit.projectId, 'v', newer]">Ouvrir la dernière mise à jour</a>
+      </div>
+    } @else if (store.readOnly()) {
+      <div class="banner banner-info readonly">
+        Visite clôturée : lecture seule.
+        <span class="spacer"></span>
+        <a class="btn btn-small" [routerLink]="store.link('synthese')">Rouvrir depuis la synthèse</a>
+      </div>
+    }
+
+    <div class="visit-body">
+      <section class="content">
+        <router-outlet />
+      </section>
+
+      @if (planOpen() || menuOpen()) { <div class="overlay-scrim" (click)="planOpen.set(false); menuOpen.set(false)"></div> }
+      @if (planOpen()) {
+        <nav class="plan" aria-label="Fiches de la visite" [style.--cols]="1 + repeatables().length">
+          <div class="plan-col">
+            <span class="plan-h">Visite · {{ store.totalProgress().answered }} / {{ store.totalProgress().total }}</span>
+            <a class="plan-item" [routerLink]="store.link('conditions')" routerLinkActive #rc="routerLinkActive" [attr.aria-current]="rc.isActive ? 'page' : null">
+              <app-icon name="check" />Conditions de visite
+            </a>
+            @for (nav of singles(); track nav.section.id) {
+              @for (i of nav.instances; track i.id) {
+                <a class="plan-item" [routerLink]="store.link('i', i.id)" [attr.aria-current]="i.id === instanceId() ? 'page' : null">
+                  <span class="ring" [class.is-done]="isDone(i)" [style.--p]="ring(i)" aria-hidden="true"></span>
+                  <span class="plan-label">{{ sectionName(nav) }}</span>
+                  @if (store.defectCounts().get(i.id); as n) {
+                    <span class="urg urg--2 plan-defects" [attr.aria-label]="n + ' désordre' + (n > 1 ? 's' : '')"><app-icon name="alert" size="sm" />{{ n }}</span>
+                  }
+                  @if (i.progress.total > 0) { <span class="count">{{ i.progress.answered }}/{{ i.progress.total }}</span> }
+                </a>
+              }
+            }
+            @if (visit.revision > 0 || store.probeCount() > 0) {
+              <span class="plan-h filters-h">Filtres</span>
+              @if (visit.revision > 0) {
+                <button class="plan-item plan-filter is-revision" type="button" [attr.aria-pressed]="store.onlyChanged()" (click)="setFilter('changed')">
+                  <app-icon name="modif" />Modifiés seulement
+                </button>
+              }
+              @if (store.probeCount() > 0) {
+                <button class="plan-item plan-filter is-sonder" type="button" [attr.aria-pressed]="store.onlyProbes()" (click)="setFilter('probes')">
+                  <app-icon name="sonder" />À sonder seulement <span class="count">{{ store.probeCount() }}</span>
+                </button>
+              }
             }
           </div>
-        } @else {
-          @for (i of nav.instances; track i.id) {
-            <a class="nav-link" [routerLink]="store.link('i', i.id)" routerLinkActive="active">
-              <span>{{ nav.section.label }}</span>
-              @if (i.progress.total > 0) {
-                <span class="count" [class.done]="i.progress.answered === i.progress.total">
-                  {{ i.progress.answered }}/{{ i.progress.total }}
-                </span>
+          @for (col of repeatables(); track $index) {
+            <div class="plan-col">
+              @for (nav of col; track nav.section.id) {
+                <div class="plan-group">
+                  <span class="plan-h">
+                    {{ sectionName(nav) }}
+                    @if (!store.readOnly()) {
+                      <button class="plan-add" type="button" (click)="addInstance(nav)" [attr.aria-label]="'+ ' + nav.section.repeatable!.noun">
+                        <app-icon name="plus" size="sm" />{{ nav.section.repeatable!.noun }}
+                      </button>
+                    }
+                  </span>
+                  @for (i of nav.instances; track i.id) {
+                    <a class="plan-item" [routerLink]="store.link('i', i.id)" [attr.aria-current]="i.id === instanceId() ? 'page' : null">
+                      <span class="ring" [class.is-done]="isDone(i)" [style.--p]="ring(i)" aria-hidden="true"></span>
+                      <span class="plan-label">{{ i.label }}</span>
+                      @if (store.defectCounts().get(i.id); as n) {
+                        <span class="urg urg--2 plan-defects" [attr.aria-label]="n + ' désordre' + (n > 1 ? 's' : '')"><app-icon name="alert" size="sm" />{{ n }}</span>
+                      }
+                      <span class="count">{{ i.progress.answered }}/{{ i.progress.total }}</span>
+                    </a>
+                  }
+                </div>
               }
-            </a>
+            </div>
           }
-        }
+          <div class="plan-tools">
+            <span class="plan-h">Outils</span>
+            <a class="plan-tool" [routerLink]="store.link('plans')"><app-icon name="plans" />Plans et croquis</a>
+            <a class="plan-tool" [routerLink]="store.link('photos')"><app-icon name="photos" />Photos · {{ store.photos().length }}</a>
+            <a class="plan-tool" [routerLink]="store.link('conclusion')"><app-icon name="pen" />Conclusion</a>
+            <a class="plan-tool" [routerLink]="store.link('synthese')"><app-icon name="list" />Synthèse et clôture</a>
+            <a class="plan-tool" [routerLink]="store.link('rapport')"><app-icon name="doc" />Rapport PDF / Word</a>
+          </div>
+        </nav>
       }
-      <div class="group">
-        <a class="nav-link" [routerLink]="store.link('plans')" routerLinkActive="active"><span><app-icon name="plans" />Plans et croquis</span></a>
-        <a class="nav-link" [routerLink]="store.link('photos')" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-          <span><app-icon name="photos" />Photos</span><span class="count">{{ store.photos().length }}</span>
-        </a>
-        <a class="nav-link" [routerLink]="store.link('conclusion')" routerLinkActive="active"><span><app-icon name="pen" />Conclusion</span></a>
-      </div>
-      <a class="nav-link synth" [routerLink]="store.link('synthese')" routerLinkActive="active"><span><app-icon name="list" />Synthèse et clôture</span></a>
-      <a class="nav-link synth" [routerLink]="store.link('rapport')" routerLinkActive="active"><span><app-icon name="doc" />Rapport PDF / Word</span></a>
-    </nav>
-    <section class="content">
-      <router-outlet />
-    </section>
+    </div>
   </div>
   @if (store.pdfChoice(); as choice) {
     <app-pdf-page-picker [choice]="choice" />

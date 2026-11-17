@@ -84,6 +84,8 @@ export interface SectionInstance {
 export interface VisitCursor {
   instanceId: string;
   scrollY: number;
+  /** Question ouverte dans le panneau de détail (lot 6b). */
+  itemId?: string;
 }
 
 export interface Visit {
