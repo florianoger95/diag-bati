@@ -33,7 +33,7 @@ test('mode avion : photo sur un item, annotation, légende et légende de photo 
 
   await page.getByLabel("Légende de l'image").fill('Tuiles poreuses côté nord');
   await page.waitForTimeout(700);
-  await page.getByRole('button', { name: '← Retour' }).click();
+  await page.getByRole('button', { name: 'Retour' }).click();
   await expect(etat.getByRole('button', { name: /Photo 1 — Tuiles poreuses côté nord/ })).toBeVisible();
 
   // rechargement complet : tout est relu depuis IndexedDB
@@ -68,9 +68,9 @@ test('mode avion : import de la page 2 d’un plan PDF, puis croquis', async ({ 
   await page.getByRole('button', { name: 'Terminer la zone' }).click();
   await expect(canvas).toHaveAttribute('aria-label', 'Annotations : 1');
   await page.getByRole('button', { name: 'Annuler' }).last().click(); // ferme la proposition de légende
-  await page.getByRole('button', { name: '← Retour' }).click();
+  await page.getByRole('button', { name: 'Retour' }).click();
 
-  await page.getByRole('button', { name: '✏️ Croquis' }).click();
+  await page.getByRole('button', { name: 'Croquis' }).click();
   // une suite par nature : premier croquis après le plan 1
   await expect(page.getByText('Croquis 1')).toBeVisible();
   await drag(page, [0.2, 0.5], [0.8, 0.5]);

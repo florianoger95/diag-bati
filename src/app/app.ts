@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
-import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, first } from 'rxjs';
 import { AppUpdateService } from './core/services/app-update.service';
 import { CabinetService } from './core/services/cabinet.service';
@@ -7,12 +7,13 @@ import { DataService } from './core/services/data.service';
 import { StorageService } from './core/services/storage.service';
 import { TemplateCatalogService } from './core/services/template-catalog.service';
 import { DialogHostComponent } from './shared/dialog-host.component';
+import { IconComponent } from './shared/ui/icon.component';
 
 const LAST_ROUTE = 'lastRoute';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, DialogHostComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, DialogHostComponent, IconComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

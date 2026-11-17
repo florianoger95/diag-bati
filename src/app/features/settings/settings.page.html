@@ -1,6 +1,6 @@
 <div class="page stack">
-  <a class="btn btn-ghost" routerLink="/" style="align-self: flex-start">← Dossiers</a>
-  <h1>Réglages</h1>
+  <a class="btn btn-ghost" routerLink="/" style="align-self: flex-start"><app-icon name="left" />Dossiers</a>
+  <div class="page-head"><h1>Réglages</h1></div>
   <p class="hint">
     Ces informations et fichiers restent sur cet iPad : ils ne sont jamais publiés avec l'app.
     Ils sont inclus dans la sauvegarde (Lot 4).
@@ -38,7 +38,7 @@
     <h2 id="t-police">Police du rapport PDF</h2>
     <div class="file">
       @if (cabinet.font(); as font) {
-        <span class="ok">✓ {{ font.family }}</span><span class="hint">({{ font.name }}, {{ formatBytes(font.size) }})</span>
+        <span class="ok"><app-icon name="check" size="sm" />{{ font.family }}</span><span class="hint">({{ font.name }}, {{ formatBytes(font.size) }})</span>
         <button class="btn btn-small btn-danger" type="button" (click)="remove('font', 'la police')">Retirer</button>
       } @else {
         <span class="missing">Police non importée : le PDF utilise Overlock.</span>
@@ -64,7 +64,7 @@
     <h2 id="t-annexe">Annexe lexique</h2>
     <div class="file">
       @if (cabinet.annex(); as annex) {
-        <span class="ok">✓ {{ annex.name }}</span><span class="hint">({{ annex.pages }} pages, importée le {{ annex.updatedAt | date: 'dd/MM/yyyy' }})</span>
+        <span class="ok"><app-icon name="check" size="sm" />{{ annex.name }}</span><span class="hint">({{ annex.pages }} pages, importée le {{ annex.updatedAt | date: 'dd/MM/yyyy' }})</span>
         <button class="btn btn-small btn-danger" type="button" (click)="remove('annex', 'l’annexe')">Retirer</button>
       } @else {
         <span class="missing">Annexe non importée : pas d'astérisques ni d'annexe dans les rapports.</span>
@@ -117,9 +117,9 @@
     <h2 id="t-sauvegarde">Sauvegarde des réglages</h2>
     <p class="hint">Cabinet, logo, police et annexe, pour les retrouver sur un autre iPad. Les dossiers s'exportent depuis l'accueil.</p>
     <div class="row">
-      <button class="btn btn-small" type="button" (click)="backup.exportSettings()">⇪ Exporter les réglages</button>
+      <button class="btn btn-small" type="button" (click)="backup.exportSettings()"><app-icon name="upload" size="sm" />Exporter les réglages</button>
       <label class="btn btn-small">
-        ⇩ Restaurer des réglages
+        <app-icon name="download" size="sm" />Restaurer des réglages
         <input type="file" accept=".zip,application/zip" hidden (change)="restore($event)" data-testid="import-settings" />
       </label>
     </div>

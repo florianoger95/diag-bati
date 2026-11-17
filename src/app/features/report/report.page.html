@@ -3,25 +3,39 @@
 
   <section class="card stack" aria-labelledby="t-prets">
     <h2 id="t-prets">Avant de générer</h2>
-    <ul class="checks">
+    <ul class="check-list">
       <li [class.ok]="cabinet.firm().name" [class.warn]="!cabinet.firm().name">
-        Cabinet : {{ cabinet.firm().name || 'coordonnées non renseignées' }}
+        <app-icon [name]="cabinet.firm().name ? 'check' : 'alert'" />
+        <span class="what">Cabinet : {{ cabinet.firm().name || 'coordonnées non renseignées' }}</span>
+        @if (!cabinet.firm().name) { <a class="btn btn-small btn-ghost" routerLink="/reglages">Réglages</a> }
       </li>
-      <li [class.ok]="cabinet.logo()" [class.warn]="!cabinet.logo()">Logo {{ cabinet.logo() ? 'importé' : 'absent' }}</li>
+      <li [class.ok]="cabinet.logo()" [class.warn]="!cabinet.logo()">
+        <app-icon [name]="cabinet.logo() ? 'check' : 'alert'" />
+        <span class="what">Logo {{ cabinet.logo() ? 'importé' : 'absent' }}</span>
+        @if (!cabinet.logo()) { <a class="btn btn-small btn-ghost" routerLink="/reglages">Réglages</a> }
+      </li>
       <li [class.ok]="cabinet.font()" [class.warn]="!cabinet.font()">
-        Police PDF : {{ cabinet.font()?.family ?? 'Overlock (Maiandra GD non importée)' }}
+        <app-icon [name]="cabinet.font() ? 'check' : 'alert'" />
+        <span class="what">Police PDF : {{ cabinet.font()?.family ?? 'Overlock (Maiandra GD non importée)' }}</span>
+        @if (!cabinet.font()) { <a class="btn btn-small btn-ghost" routerLink="/reglages">Réglages</a> }
       </li>
       <li [class.ok]="cabinet.annex()" [class.warn]="!cabinet.annex()">
-        {{ cabinet.annex() ? 'Annexe lexique importée : astérisques et annexe ajoutés' : 'Annexe lexique non importée : ni astérisques ni annexe' }}
+        <app-icon [name]="cabinet.annex() ? 'check' : 'alert'" />
+        <span class="what">{{ cabinet.annex() ? 'Annexe lexique importée : astérisques et annexe ajoutés' : 'Annexe lexique non importée : ni astérisques ni annexe' }}</span>
+        @if (!cabinet.annex()) { <a class="btn btn-small btn-ghost" routerLink="/reglages">Réglages</a> }
       </li>
-      <li class="ok">{{ photoCount() }} image{{ photoCount() > 1 ? 's' : '' }} dans la visite</li>
+      <li class="ok">
+        <app-icon name="check" />
+        <span class="what">{{ photoCount() }} image{{ photoCount() > 1 ? 's' : '' }} dans la visite</span>
+      </li>
     </ul>
-    <a class="btn btn-small" routerLink="/reglages" style="align-self: flex-start">Ouvrir les réglages</a>
+    <p class="hint">Les points en avertissement n'empêchent pas la génération : ils changent seulement la présentation du rapport.</p>
   </section>
 
-  <div class="row">
-    <button class="btn btn-primary" type="button" [disabled]="!!busy() || !ready()" (click)="generate('pdf')">📄 Générer le PDF</button>
-    <button class="btn" type="button" [disabled]="!!busy() || !ready()" (click)="generate('docx')">📝 Générer le Word (.docx)</button>
+  <h2 class="section-title">Générer</h2>
+  <div class="row generate">
+    <button class="btn btn-primary" type="button" [disabled]="!!busy() || !ready()" (click)="generate('pdf')"><app-icon name="doc" />Générer le PDF</button>
+    <button class="btn" type="button" [disabled]="!!busy() || !ready()" (click)="generate('docx')"><app-icon name="doc" />Générer le Word (.docx)</button>
   </div>
   @if (!ready()) { <p class="hint">Chargement de la configuration du rapport…</p> }
 
@@ -42,7 +56,7 @@
       <span class="hint">{{ formatBytes(r.blob.size) }} · généré en {{ r.seconds }} s</span>
       <div class="row">
         @if (canShare) {
-          <button class="btn btn-primary" type="button" (click)="share(r)">Partager / enregistrer dans Fichiers</button>
+          <button class="btn btn-primary" type="button" (click)="share(r)"><app-icon name="upload" />Partager / enregistrer dans Fichiers</button>
         }
         <a class="btn" [href]="r.url" [attr.download]="r.fileName" target="_blank" rel="noopener">Ouvrir</a>
       </div>

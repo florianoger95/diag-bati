@@ -14,9 +14,9 @@ test('mode avion : mise à jour après curage, repère violet, annulation et rap
   await page.locator('#item-couv-tuiles-etat').getByRole('textbox').fill('Tuiles poreuses.');
   await openSheet(page, 'Synthèse et clôture');
   await page.getByRole('button', { name: 'Clôturer la visite' }).click();
-  await page.getByRole('link', { name: 'Mise à jour ou sauvegarde →' }).click();
+  await page.getByRole('link', { name: 'Mise à jour ou sauvegarde' }).click();
 
-  await page.getByRole('button', { name: '+ Nouvelle mise à jour' }).click();
+  await page.getByRole('button', { name: 'Nouvelle mise à jour' }).click();
   await page.getByRole('button', { name: 'Créer la mise à jour' }).click();
   await expect(page.getByText('Mise à jour 1 — suite à curage')).toBeVisible();
 
@@ -65,7 +65,7 @@ test('mode avion : sauvegarde d’un dossier, suppression, restauration puis cop
   await page.getByRole('link', { name: 'Accueil — dossiers' }).click();
   await expect(page.getByText(/1 dossier non exporté/)).toBeVisible();
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: '⇪ Exporter' }).click();
+  await page.getByRole('button', { name: 'Exporter' }).click();
   const file = await download;
   // WebKit sous Linux remplace les espaces du nom de fichier par « _ »
   expect(file.suggestedFilename()).toMatch(/PROJET[ _]SAUVEGARDE\.diag\.zip$/);

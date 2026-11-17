@@ -1,103 +1,134 @@
-<div class="page stack">
-  <div class="row">
-    <h1>Dossiers</h1>
-    <span class="spacer"></span>
-    <label class="btn">
-      ⇩ Restaurer une sauvegarde
-      <input type="file" accept=".zip,application/zip,application/x-zip-compressed" hidden (change)="restore($event)" data-testid="import-backup" />
-    </label>
-    <a class="btn btn-primary" routerLink="/dossiers/nouveau">+ Nouveau dossier</a>
-  </div>
+<div class="home">
+  <div class="page stack">
+    <div class="page-head">
+      <h1>Dossiers</h1>
+      <span class="spacer"></span>
+      <label class="btn">
+        <app-icon name="download" />Restaurer une sauvegarde
+        <input type="file" accept=".zip,application/zip,application/x-zip-compressed" hidden (change)="restore($event)" data-testid="import-backup" />
+      </label>
+      <a class="btn btn-primary" routerLink="/dossiers/nouveau"><app-icon name="plus" />Nouveau dossier</a>
+    </div>
 
-  @if (unexported() > 0) {
-    <div class="banner banner-danger stack-tight" role="alert">
-      <div class="stack-tight">
-        <strong>
-          {{ unexported() }} dossier{{ unexported() > 1 ? 's' : '' }} non exporté{{ unexported() > 1 ? 's' : '' }} :
-          {{ unexported() > 1 ? 'ils n’existent' : 'il n’existe' }} que sur cet iPad.
-        </strong>
-        @if (showWhy()) {
-          <span class="why">
-            Safari peut effacer les données d'une app web quand l'iPad manque de place, ou si l'app
-            n'est pas ouverte pendant plusieurs semaines. Une PWA installée sur l'écran d'accueil et utilisée
-            régulièrement est protégée, mais pas de façon garantie. Exportez chaque dossier dès la visite
-            terminée (bouton « Exporter ») vers iCloud Drive ou votre ordinateur : la sauvegarde se restaure
-            sur n'importe quel iPad avec « Restaurer une sauvegarde ».
-          </span>
+    @if (unexported() > 0) {
+      <div class="banner banner-danger" role="alert">
+        <app-icon name="error" />
+        <div class="stack-tight">
+          <strong>
+            {{ unexported() }} dossier{{ unexported() > 1 ? 's' : '' }} non exporté{{ unexported() > 1 ? 's' : '' }} :
+            {{ unexported() > 1 ? 'ils n’existent' : 'il n’existe' }} que sur cet iPad.
+          </strong>
+          @if (showWhy()) {
+            <span class="why">
+              Safari peut effacer les données d'une app web quand l'iPad manque de place, ou si l'app
+              n'est pas ouverte pendant plusieurs semaines. Une PWA installée sur l'écran d'accueil et utilisée
+              régulièrement est protégée, mais pas de façon garantie. Exportez chaque dossier dès la visite
+              terminée (bouton « Exporter ») vers iCloud Drive ou votre ordinateur : la sauvegarde se restaure
+              sur n'importe quel iPad avec « Restaurer une sauvegarde ».
+            </span>
+          }
+        </div>
+        <button class="btn btn-small" type="button" (click)="showWhy.set(!showWhy())">
+          {{ showWhy() ? 'Masquer' : 'Pourquoi ?' }}
+        </button>
+      </div>
+    }
+
+    @for (e of catalog.errors(); track e.file) {
+      <div class="banner banner-warn" role="alert">
+        Modèle « {{ e.file }} » ignoré : {{ e.errors[0] }}{{ e.errors.length > 1 ? ' (+' + (e.errors.length - 1) + ')' : '' }}
+      </div>
+    }
+
+    <div class="tabs" role="tablist" aria-label="Statut des dossiers">
+      @for (t of tabs; track t.id) {
+        <button class="tab" type="button" role="tab" [attr.aria-selected]="tab() === t.id" (click)="tab.set(t.id)">
+          {{ t.label }} <span class="badge" [class.badge-ok]="tab() === t.id">{{ counts()[t.id] }}</span>
+        </button>
+      }
+    </div>
+
+    @if (projects() === null) {
+      <p class="hint">Chargement…</p>
+    } @else if (visible().length === 0) {
+      <div class="card empty-state">
+        @if (tab() === 'draft') {
+          <app-icon name="folder" size="lg" />
+          <p>Aucun dossier en cours.</p>
+          <a class="btn btn-primary" routerLink="/dossiers/nouveau">Créer un dossier</a>
+        } @else {
+          <p>Aucun dossier dans cette catégorie.</p>
         }
       </div>
-      <span class="spacer"></span>
-      <button class="btn btn-small btn-danger" type="button" (click)="showWhy.set(!showWhy())">
-        {{ showWhy() ? 'Masquer' : 'Pourquoi ?' }}
-      </button>
-    </div>
-  }
-
-  @for (e of catalog.errors(); track e.file) {
-    <div class="banner banner-warn" role="alert">
-      Modèle « {{ e.file }} » ignoré : {{ e.errors[0] }}{{ e.errors.length > 1 ? ' (+' + (e.errors.length - 1) + ')' : '' }}
-    </div>
-  }
-
-  <nav class="tabs" role="tablist" aria-label="Statut des dossiers">
-    @for (t of tabs; track t.id) {
-      <button class="choice" type="button" role="tab" [attr.aria-pressed]="tab() === t.id"
-              [attr.aria-selected]="tab() === t.id" (click)="tab.set(t.id)">
-        {{ t.label }} <span class="badge">{{ counts()[t.id] }}</span>
-      </button>
-    }
-  </nav>
-
-  @if (projects() === null) {
-    <p class="hint">Chargement…</p>
-  } @else if (visible().length === 0) {
-    <div class="card empty">
-      @if (tab() === 'draft') {
-        <p>Aucun dossier en cours.</p>
-        <a class="btn btn-primary" routerLink="/dossiers/nouveau">Créer un dossier</a>
-      } @else {
-        <p class="hint">Aucun dossier dans cette catégorie.</p>
-      }
-    </div>
-  } @else {
-    <ul class="list">
-      @for (s of visible(); track s.project.id) {
-        <li class="card item">
-          <a class="open" [routerLink]="['/dossiers', s.project.id, 'v', s.latestVisit.id]">
-            <span class="ref">{{ s.project.reference }}</span>
-            <strong class="name">{{ field(s, 'projet') || 'Sans nom' }}</strong>
-            <span class="hint">{{ field(s, 'adresse') }}</span>
-            <span class="meta hint">
-              @if (visitDate(s); as d) { Visite du {{ d | date: 'dd/MM/yyyy' }} · }
-              @if (s.latestVisit.revision > 0) { Mise à jour {{ s.latestVisit.revision }} · }
-              modifié le {{ s.project.updatedAt | date: 'dd/MM/yyyy à HH:mm' }}
-            </span>
-          </a>
-          <div class="actions">
-            <a class="btn btn-small" [routerLink]="['/dossiers', s.project.id]">Dossier</a>
-            <button class="btn btn-small" type="button" [disabled]="exporting() === s.project.id" (click)="export(s)">
-              {{ exporting() === s.project.id ? 'Export…' : '⇪ Exporter' }}
-            </button>
-            <button class="btn btn-small btn-danger" type="button" (click)="remove(s)">Supprimer</button>
-          </div>
-        </li>
-      }
-    </ul>
-  }
-
-  <footer class="storage hint">
-    @if (updates.offlineReady() === true) {
-      <span class="badge badge-ok" data-testid="offline-ready">Prête hors ligne ✓</span>
-    } @else if (updates.offlineReady() === null) {
-      <span class="badge">Téléchargement pour le hors-ligne… gardez la connexion</span>
     } @else {
-      <span class="badge badge-warn">Hors-ligne incomplet : rouvrez l'app avec une connexion</span>
+      <div class="list">
+        @for (s of visible(); track s.project.id) {
+          <article class="card dossier" [attr.aria-label]="(field(s, 'projet') || 'Sans nom') + ' — ' + s.project.reference">
+            <div class="who">
+              <span class="overline">{{ s.project.reference }} · {{ visitLabel(s) }}</span>
+              <strong class="name">{{ field(s, 'projet') || 'Sans nom' }}</strong>
+              @if (field(s, 'adresse'); as a) { <span>{{ a }}</span> }
+              <span class="hint">{{ s.project.templateSnapshot.label }} (v{{ s.project.templateVersion }})</span>
+            </div>
+            <div class="state">
+              <div class="progress-line">
+                <strong>{{ s.overview.answered }} / {{ s.overview.total }} réponses</strong>
+                <span class="hint">
+                  @if (needsExport(s)) { modifié le {{ s.project.updatedAt | date: 'dd/MM à HH:mm' }} }
+                  @else { exporté le {{ s.latestVisit.exportedAt | date: 'dd/MM' }} }
+                </span>
+              </div>
+              <div class="gauge" aria-hidden="true"><span [style.width.%]="percent(s)"></span></div>
+              <div class="marks">
+                @for (u of urgencies; track u) {
+                  @if (s.overview.defects[u]; as n) {
+                    <span class="urg urg--{{ urgencyLevel[u] }}"><app-icon name="alert" size="sm" /><app-urgency-meter />{{ defectLabel(u, n) }}</span>
+                  }
+                }
+                @if (s.overview.probes) {
+                  <span class="tag-sonder"><app-icon name="sonder" size="sm" />{{ s.overview.probes }} à sonder</span>
+                }
+                @if (s.overview.revised) {
+                  <span class="badge badge-revision">{{ s.overview.revised }} modifié{{ s.overview.revised > 1 ? 's' : '' }}</span>
+                }
+                @if (needsExport(s)) { <span class="badge badge-warn">Non exporté</span> }
+              </div>
+            </div>
+            <div class="actions">
+              <a class="btn btn-primary" [routerLink]="['/dossiers', s.project.id, 'v', s.latestVisit.id]">
+                Reprendre la visite<app-icon name="right" />
+              </a>
+              <div class="row-tight">
+                <a class="btn" [routerLink]="['/dossiers', s.project.id]"><app-icon name="folder" />Dossier</a>
+                <button class="btn btn-icon" type="button" [disabled]="exporting() === s.project.id" (click)="export(s)"
+                        [attr.aria-label]="exporting() === s.project.id ? 'Export en cours' : 'Exporter'" title="Exporter une sauvegarde">
+                  <app-icon [name]="exporting() === s.project.id ? 'sync' : 'upload'" />
+                </button>
+                <button class="btn btn-icon btn-ghost" type="button" (click)="remove(s)" aria-label="Supprimer" title="Supprimer le dossier">
+                  <app-icon name="trash" />
+                </button>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </div>
+
+  <footer class="statusbar">
+    @if (updates.offlineReady() === true) {
+      <strong class="ok" data-testid="offline-ready"><app-icon name="offline" size="sm" />Prête hors ligne</strong>
+    } @else if (updates.offlineReady() === null) {
+      <span><app-icon name="sync" size="sm" />Téléchargement pour le hors-ligne… gardez la connexion</span>
+    } @else {
+      <span class="badge badge-warn"><app-icon name="alert" size="sm" />Hors-ligne incomplet : rouvrez l'app avec une connexion</span>
     }
     @if (storageText(); as text) { <span>Stockage : {{ text }}.</span> }
+    <span class="spacer"></span>
     @if (storage.persisted() === true) {
       <span class="badge badge-ok">Stockage persistant accordé</span>
     } @else if (storage.persisted() === false) {
-      <span class="badge badge-warn">Stockage non persistant : installez l'app sur l'écran d'accueil</span>
+      <span class="badge badge-warn"><app-icon name="alert" size="sm" />Stockage non persistant : installez l'app sur l'écran d'accueil</span>
     }
   </footer>
 </div>

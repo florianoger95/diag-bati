@@ -23,14 +23,23 @@ test('mode avion : plan en image pivoté et recadré, nouveaux outils, légende 
   const canvas = page.locator('.annotator canvas');
   await expect(page.getByRole('group', { name: 'Ajuster le plan' })).toBeVisible();
 
-  // légende lisible : texte foncé sur fond clair
-  const color = await page.getByLabel("Légende de l'image").evaluate((el) => getComputedStyle(el).color);
-  expect(color).not.toBe('rgb(255, 255, 255)');
+  // légende lisible : contraste texte / fond d'au moins 4,5:1 (lot 6a : texte blanc sur champ sombre)
+  const contrast = await page.getByLabel("Légende de l'image").evaluate((el) => {
+    const rgb = (c: string) => c.match(/\d+(\.\d+)?/g)!.slice(0, 3).map(Number);
+    const lum = (c: string) => {
+      const [r, g, b] = rgb(c).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const st = getComputedStyle(el);
+    const [l1, l2] = [lum(st.color), lum(st.backgroundColor)].sort((x, y) => y - x);
+    return (l1 + 0.05) / (l2 + 0.05);
+  });
+  expect(contrast).toBeGreaterThanOrEqual(4.5);
 
   // pivoter : le plan paysage devient portrait
   const before = (await canvas.boundingBox())!;
   expect(before.width).toBeGreaterThan(before.height);
-  await page.getByRole('button', { name: '⟳ Pivoter à droite' }).click();
+  await page.getByRole('button', { name: 'Pivoter à droite' }).click();
   await expect.poll(async () => { const b = (await canvas.boundingBox())!; return b.height > b.width; }).toBe(true);
 
   // recadrer : on garde la moitié haute
@@ -55,7 +64,7 @@ test('mode avion : plan en image pivoté et recadré, nouveaux outils, légende 
 
   await page.getByRole('button', { name: 'Sélectionner / déplacer' }).click();
   await page.mouse.click(box.x + 0.5 * box.width, box.y + 0.6 * box.height);
-  await page.getByRole('button', { name: '⧉ Dupliquer' }).click();
+  await page.getByRole('button', { name: 'Dupliquer' }).click();
   await expect(canvas).toHaveAttribute('aria-label', 'Annotations : 3');
 
   await page.getByRole('button', { name: 'Pastille numérotée' }).click();

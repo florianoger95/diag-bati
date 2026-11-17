@@ -10,10 +10,17 @@
     L'app hors ligne est endommagée : reconnectez l'iPad à Internet puis rouvrez-la. Vos données ne sont pas touchées.
   </div>
 }
-<header class="topbar">
-  <a class="brand" routerLink="/" aria-label="Accueil — dossiers">Diag bâti</a>
+<header class="appbar">
+  <a class="brand" routerLink="/" aria-label="Accueil — dossiers">
+    <img class="appbar-logo" src="brand/monogramme-blanc.png" alt="3DE" />
+    <span class="brand-text">
+      <strong>Diag bâti</strong>
+      <span class="appbar-meta">Diagnostic du bâti ancien</span>
+    </span>
+  </a>
   <span class="spacer"></span>
-  <a class="settings" routerLink="/reglages" aria-label="Réglages">⚙ Réglages</a>
+  <a class="appbar-tool" routerLink="/reglages" routerLinkActive #rla="routerLinkActive"
+     [attr.aria-current]="rla.isActive ? 'page' : null"><app-icon name="gear" />Réglages</a>
 </header>
 <main>
   <router-outlet />

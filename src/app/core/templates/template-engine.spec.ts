@@ -15,6 +15,7 @@ import {
   missingRequired,
   resolveTemplate,
   sectionItems,
+  visitOverview,
 } from './template-engine';
 
 function answer(instanceId: string, itemId: string, partial: Partial<Answer>): Answer {
@@ -180,6 +181,27 @@ describe('progression, obligatoires, désordres, actions', () => {
     const p = instanceProgress(sectionItems(resolved, 'couverture'), answers.filter((a) => a.instanceId === 'bat-a'));
     // type, etat, patho, gouttiere, commentaires, preconisations, securite = 7 ; 4 répondus
     expect(p).toEqual({ answered: 4, total: 7 });
+  });
+
+  it('résume une visite pour l’accueil : réponses, désordres par urgence, sondages, modifiés', () => {
+    expect(visitOverview(resolved, visit, answers)).toEqual({
+      answered: 5, total: 15,
+      defects: { immediate: 0, short: 1, medium: 0, monitor: 1 },
+      probes: 0, revised: 0,
+    });
+    const update = { ...visit, revision: 1 };
+    const list = [
+      answer('bat-a', 'couv-etat', { value: 'mauvais', probe: true, changedInRevision: 1,
+        extra: [{ id: 'o2', text: 'Rive', defect: { urgency: 'immediate' } }] }),
+      // repère levé dans la mise à jour : n'est plus en attente
+      answer('nord', 'fac-pente', { value: 4, changedInRevision: 0,
+        inherited: { value: 4, observation: '', changedInRevision: 0, probe: true } }),
+    ];
+    expect(visitOverview(resolved, update, list)).toEqual({
+      answered: 2, total: 15,
+      defects: { immediate: 1, short: 0, medium: 0, monitor: 0 },
+      probes: 1, revised: 1,
+    });
   });
 
   it('liste les obligatoires manquants par instance', () => {

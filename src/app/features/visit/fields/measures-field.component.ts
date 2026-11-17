@@ -1,3 +1,4 @@
+import { IconComponent } from '../../../shared/ui/icon.component';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { MeasureRow } from '../../../core/model/data';
 import { MeasuresConfig } from '../../../core/model/template';
@@ -6,7 +7,7 @@ import { NumberInputComponent } from '../../../shared/number-input.component';
 /** Tableau de relevés : points fixes (0 m / 1 m / 2 m) ou lignes libres (témoins, fissures). */
 @Component({
   selector: 'app-measures-field',
-  imports: [NumberInputComponent],
+  imports: [NumberInputComponent, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="table" role="table" [attr.aria-label]="label()">
@@ -29,7 +30,7 @@ import { NumberInputComponent } from '../../../shared/number-input.component';
           }
           @if (!fixed() && !readonly()) {
             <button class="btn btn-ghost btn-small" type="button" (click)="remove(i)"
-                    [attr.aria-label]="'Supprimer le relevé ' + (i + 1)">✕</button>
+                    [attr.aria-label]="'Supprimer le relevé ' + (i + 1)"><app-icon name="x" /></button>
           }
         </div>
       }

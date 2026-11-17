@@ -22,7 +22,10 @@ export const URGENCY_DEFINITIONS: Record<Urgency, string> = {
 };
 
 /** « Immédiat : action dans les prochaines semaines · Court terme : … » */
-export const URGENCY_LEGEND = URGENCIES.map((u) => `${URGENCY_LABELS[u]} : ${URGENCY_DEFINITIONS[u]}`).join(' · ');
+/** Niveau affiché (1 = Immédiat … 4 = À surveiller) : couleur `--urg-n` et jauge de 4 barres. */
+export const URGENCY_LEVEL: Record<Urgency, 1 | 2 | 3 | 4> = { immediate: 1, short: 2, medium: 3, monitor: 4 };
+
+export const URGENCY_LEGEND =URGENCIES.map((u) => `${URGENCY_LABELS[u]} : ${URGENCY_DEFINITIONS[u]}`).join(' · ');
 
 export interface MeasureRow {
   id: string;

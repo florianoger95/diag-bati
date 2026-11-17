@@ -1,3 +1,4 @@
+import { IconComponent } from '../../shared/ui/icon.component';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AnswerValue } from '../../core/model/data';
@@ -16,12 +17,12 @@ export function localDateTime(d = new Date()): string {
 
 @Component({
   selector: 'app-new-project-page',
-  imports: [RouterLink, ItemFieldComponent],
+  imports: [RouterLink, ItemFieldComponent, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="page stack">
       <div class="row">
-        <a class="btn btn-ghost" routerLink="/">← Dossiers</a>
+        <a class="btn btn-ghost" routerLink="/"><app-icon name="left" />Dossiers</a>
       </div>
       <h1>Nouveau dossier</h1>
 
@@ -61,7 +62,7 @@ export function localDateTime(d = new Date()): string {
   styles: `
     .templates { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
     .template { display: flex; flex-direction: column; gap: 6px; text-align: left; cursor: pointer; min-height: 120px; font: inherit; }
-    .template[aria-pressed='true'] { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+    .template[aria-pressed='true'] { border: 2px solid var(--brand); box-shadow: var(--shadow-card), 0 0 0 3px var(--brand-pale); }
     .right { text-align: right; }
   `,
 })

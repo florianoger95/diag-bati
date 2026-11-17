@@ -8,6 +8,7 @@ import { DataService } from '../../core/services/data.service';
 import { DialogService } from '../../core/services/dialog.service';
 import { resolveTemplate } from '../../core/templates/template-engine';
 import { FieldChange, ItemFieldComponent } from '../visit/fields/item-field.component';
+import { IconComponent } from '../../shared/ui/icon.component';
 import { localDateTime } from './new-project.page';
 
 const STATUS_LABELS: Record<Visit['status'], string> = {
@@ -20,62 +21,80 @@ const REASONS = ['suite à curage', 'suite aux sondages', 'suite aux travaux', '
 
 @Component({
   selector: 'app-project-page',
-  imports: [RouterLink, DatePipe, ItemFieldComponent],
+  imports: [RouterLink, DatePipe, ItemFieldComponent, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="page stack">
-      <a class="btn btn-ghost back" routerLink="/">← Dossiers</a>
+    <div class="page stack wide">
+      <a class="btn btn-ghost back" routerLink="/"><app-icon name="left" />Dossiers</a>
       @if (project(); as p) {
-        <h1>{{ p.fields['projet'] || 'Dossier' }} <span class="hint ref">{{ p.reference }}</span></h1>
-        <p class="hint">Modèle : {{ p.templateSnapshot.label }} (v{{ p.templateVersion }})</p>
-
-        <section class="stack">
-          <h2>Visites</h2>
-          @for (v of visits(); track v.id) {
-            <a class="card visit" [routerLink]="['v', v.id]" [class.current]="v.id === latest()?.id">
-              <strong>{{ v.revision === 0 ? 'Visite initiale' : 'Mise à jour ' + v.revision }}</strong>
-              @if (v.reason) { <span class="reason">{{ v.reason }}</span> }
-              <span class="badge" [class.badge-ok]="v.status !== 'draft'">{{ statusLabels[v.status] }}</span>
-              @if (v.id !== latest()?.id) { <span class="badge">Lecture seule</span> }
-              <span class="hint">
-                @if (v.fields['date-visite']) { {{ $any(v.fields['date-visite']) | date: 'dd/MM/yyyy à HH:mm' }} · }
-                {{ v.instances.length }} fiches
-                @if (v.exportedAt) { · sauvegardée le {{ v.exportedAt | date: 'dd/MM/yyyy' }} }
-              </span>
-            </a>
-          }
-          <div class="row">
-            <button class="btn btn-primary" type="button" [disabled]="!canUpdate()" (click)="newRevision()">+ Nouvelle mise à jour</button>
-            <button class="btn" type="button" [disabled]="exporting()" (click)="export()">
-              {{ exporting() ? 'Préparation…' : '⇪ Exporter une sauvegarde' }}
-            </button>
+        <div class="page-head">
+          <div>
+            <span class="overline">Dossier {{ p.reference }}</span>
+            <h1>{{ p.fields['projet'] || 'Dossier' }}</h1>
+            <p class="hint">{{ p.templateSnapshot.label }} (v{{ p.templateVersion }})</p>
           </div>
-          @if (!canUpdate()) {
-            <p class="hint">Clôturez la dernière visite (page « Synthèse et clôture ») pour créer une mise à jour.</p>
-          }
-          @if (needsExport()) {
-            <p class="banner banner-warn">Ce dossier a des modifications non sauvegardées : exportez-le pour le mettre à l'abri.</p>
-          }
-        </section>
+        </div>
 
-        <section class="stack">
-          <h2>Informations du projet</h2>
-          @for (item of fieldsDef(); track item.id) {
-            <app-item-field [item]="item" [state]="{ value: $any(p.fields[item.id] ?? null), observation: '' }"
-                            [allowDefect]="false" (changed)="setField(item.id, $event)" />
-          }
-        </section>
+        <div class="columns">
+          <section class="stack">
+            <h2 class="section-title">Visites et mises à jour</h2>
+            <div class="card visits">
+              @for (v of visits(); track v.id) {
+                <a class="list-item visit" [routerLink]="['v', v.id]" [class.current]="v.id === latest()?.id">
+                  <div class="visit-text">
+                    <strong>{{ v.revision === 0 ? 'Visite initiale' : 'Mise à jour ' + v.revision }}</strong>
+                    @if (v.reason) { <span class="reason">{{ v.reason }}</span> }
+                    <span class="hint">
+                      @if (v.fields['date-visite']) { {{ $any(v.fields['date-visite']) | date: 'dd/MM/yyyy à HH:mm' }} · }
+                      {{ v.instances.length }} fiches
+                      @if (v.exportedAt) { · sauvegardée le {{ v.exportedAt | date: 'dd/MM/yyyy' }} }
+                    </span>
+                  </div>
+                  <span class="badge" [class.badge-ok]="v.status !== 'draft'">{{ statusLabels[v.status] }}</span>
+                  @if (v.id !== latest()?.id) { <span class="badge">Lecture seule</span> }
+                  <app-icon name="right" />
+                </a>
+              }
+            </div>
+            <div class="row">
+              <button class="btn btn-primary" type="button" [disabled]="!canUpdate()" (click)="newRevision()"><app-icon name="plus" />Nouvelle mise à jour</button>
+              <button class="btn" type="button" [disabled]="exporting()" (click)="export()">
+                <app-icon name="upload" />{{ exporting() ? 'Préparation…' : 'Exporter une sauvegarde' }}
+              </button>
+            </div>
+            @if (!canUpdate()) {
+              <p class="hint">Clôturez la dernière visite (page « Synthèse et clôture ») pour créer une mise à jour.</p>
+            }
+            @if (needsExport()) {
+              <p class="banner banner-warn"><app-icon name="alert" />Ce dossier a des modifications non sauvegardées : exportez-le pour le mettre à l'abri.</p>
+            }
+          </section>
+
+          <section class="stack">
+            <h2 class="section-title">Informations du projet</h2>
+            @for (item of fieldsDef(); track item.id) {
+              <app-item-field [item]="item" [state]="{ value: $any(p.fields[item.id] ?? null), observation: '' }"
+                              [allowDefect]="false" (changed)="setField(item.id, $event)" />
+            }
+          </section>
+        </div>
       } @else if (missing()) {
         <p>Ce dossier n'existe plus sur cet iPad.</p>
       }
     </div>
   `,
   styles: `
+    .wide { max-width: 1180px; }
     .back { align-self: flex-start; }
-    .ref { font-size: 18px; font-weight: 600; }
-    .visit { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; color: inherit; text-decoration: none; min-height: 64px; }
-    .visit.current { border-color: var(--primary); }
+    .page-head h1 { text-transform: uppercase; }
+    .columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-5); align-items: start; }
+    .section-title { margin-top: 0; }
+    .visits { padding: 0; }
+    .visit { color: inherit; text-decoration: none; min-height: 72px; }
+    .visit.current { box-shadow: inset 4px 0 0 var(--brand); }
+    .visit-text { flex: 1; display: flex; flex-direction: column; }
     .reason { color: var(--revision); font-weight: 600; }
+    @media (max-width: 900px) { .columns { grid-template-columns: 1fr; } }
   `,
 })
 export class ProjectPage {

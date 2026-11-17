@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { CabinetService } from '../../core/services/cabinet.service';
 import { DialogService } from '../../core/services/dialog.service';
 import { formatBytes } from '../../core/services/storage.service';
+import { IconComponent } from '../../shared/ui/icon.component';
 import { VisitStore } from '../visit/visit-store';
 import { GeneratedReport, generateReport } from './generate-report';
 
@@ -15,16 +16,17 @@ interface Result extends GeneratedReport {
 /** Génération et partage du rapport PDF / Word, hors ligne. */
 @Component({
   selector: 'app-report-page',
-  imports: [RouterLink],
+  imports: [RouterLink, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './report.page.html',
   styles: `
-    .checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-    .ok::before { content: '✓ '; color: var(--ok); font-weight: 800; }
-    .warn::before { content: '! '; color: var(--warn); font-weight: 800; }
+    .check-list .what { flex: 1; }
+    .check-list li.ok .i { color: var(--ok); }
+    .check-list li.warn .i { color: var(--warn); }
+    .generate .btn { min-height: var(--target-lg); padding: 0 28px; }
     .bar { height: 12px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
     .bar span { display: block; height: 100%; background: var(--primary); transition: width .2s; }
-    .result { border-color: var(--ok); }
+    .result { box-shadow: var(--shadow-card), inset 4px 0 0 var(--brand); }
   `,
 })
 export class ReportPage {

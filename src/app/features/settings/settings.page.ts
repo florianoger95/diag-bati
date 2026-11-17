@@ -8,17 +8,19 @@ import { TemplateCatalogService } from '../../core/services/template-catalog.ser
 import { DialogService } from '../../core/services/dialog.service';
 import { formatBytes, StorageService } from '../../core/services/storage.service';
 import { AutoGrowDirective } from '../../shared/auto-grow.directive';
+import { IconComponent } from '../../shared/ui/icon.component';
 
 /** Réglages : identité du cabinet et fichiers importés sur l'iPad (jamais publiés sur le site). */
 @Component({
   selector: 'app-settings-page',
-  imports: [RouterLink, DatePipe, AutoGrowDirective],
+  imports: [RouterLink, DatePipe, AutoGrowDirective, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './settings.page.html',
   styles: `
     .preview { max-height: 80px; max-width: 280px; background: #fff; border: 1px solid var(--surface-2); padding: 4px; }
     .file { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-    .ok { color: var(--ok); font-weight: 700; }
+    .ok { display: inline-flex; align-items: center; gap: 6px; color: var(--ok); font-weight: 700; }
+    h2 { font-size: var(--fs-lg); }
     .missing { color: var(--warn); font-weight: 700; }
     details { font-size: 16px; }
     .templates { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }

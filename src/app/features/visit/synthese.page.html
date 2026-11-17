@@ -2,7 +2,7 @@
   <h1>Synthèse de la visite</h1>
 
   <section class="card stack" aria-labelledby="t-desordres">
-    <h2 id="t-desordres">Désordres <span class="badge" [class.badge-danger]="defects().length">{{ defects().length }}</span></h2>
+    <h2 id="t-desordres">Désordres <span class="badge">{{ defects().length }}</span></h2>
     @if (defects().length === 0) {
       <p class="hint">Aucun désordre relevé.</p>
     } @else {
@@ -11,9 +11,9 @@
         @for (d of defects(); track d.instanceId + d.itemId + d.obsId) {
           <li>
             <a [routerLink]="link(d)" [fragment]="fragment(d)" class="entry">
-              <span class="badge badge-danger">{{ labels[d.urgency] }}</span>
+              <app-urgency [urgency]="d.urgency" [solid]="true" />
               <span><strong>{{ d.instanceLabel }}</strong> — {{ d.itemLabel }}</span>
-              @if (d.observation) { <span class="obs">{{ d.observation }}</span> }
+              @if (d.observation) { <span class="entry-obs">{{ d.observation }}</span> }
             </a>
           </li>
         }
@@ -23,14 +23,14 @@
 
   @if (probes().length) {
     <section class="card stack" aria-labelledby="t-sondages">
-      <h2 id="t-sondages">Sondages à réaliser <span class="badge badge-probe">{{ probesLeft() }}</span></h2>
+      <h2 id="t-sondages">Sondages à réaliser <span class="badge badge-sonder">{{ probesLeft() }}</span></h2>
       <ul class="list">
         @for (p of probes(); track p.instanceId + p.itemId + p.obsId) {
           <li>
             <a [routerLink]="link(p)" [fragment]="fragment(p)" class="entry">
-              @if (p.done) { <span class="badge">Levé</span> } @else { <span class="badge badge-probe">À sonder</span> }
+              @if (p.done) { <span class="badge">Levé</span> } @else { <span class="tag-sonder"><app-icon name="sonder" size="sm" />À sonder</span> }
               <span><strong>{{ p.instanceLabel }}</strong> — {{ p.itemLabel }}</span>
-              @if (p.observation) { <span class="obs">{{ p.observation }}</span> }
+              @if (p.observation) { <span class="entry-obs">{{ p.observation }}</span> }
             </a>
           </li>
         }
@@ -47,7 +47,7 @@
         @for (a of safety(); track trackAction(a)) {
           <li>
             <a [routerLink]="link(a)" [fragment]="fragment(a)" class="entry">
-              <span class="badge" [class.badge-danger]="a.urgency === 'immediate'">{{ labels[a.urgency] }}</span>
+              <app-urgency [urgency]="a.urgency" />
               <span>{{ a.text }}</span>
               <span class="hint">{{ a.instanceLabel }}</span>
             </a>
@@ -111,7 +111,7 @@
     } @else {
       <span class="hint">Visite clôturée.</span>
       <button class="btn" type="button" (click)="reopen()">Rouvrir la visite</button>
-      <a class="btn btn-primary" [routerLink]="['/dossiers', store.visit()!.projectId]">Mise à jour ou sauvegarde →</a>
+      <a class="btn btn-primary" [routerLink]="['/dossiers', store.visit()!.projectId]">Mise à jour ou sauvegarde<app-icon name="right" /></a>
     }
   </div>
 </div>

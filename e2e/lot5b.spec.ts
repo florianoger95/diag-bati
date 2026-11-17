@@ -25,7 +25,7 @@ test('mode avion : numéros des photos dans l’ordre du rapport, repère « À 
 
   // repère « À sonder », cumulable avec un désordre
   await etat.getByRole('textbox').fill('Lattis à vérifier sous les tuiles.');
-  const probe = etat.getByRole('button', { name: '🔍 À sonder' });
+  const probe = etat.getByRole('button', { name: 'À sonder', exact: true });
   await probe.click();
   await expect(probe).toHaveAttribute('aria-pressed', 'true');
   await etat.getByRole('button', { name: /Désordre/ }).click();
@@ -34,10 +34,10 @@ test('mode avion : numéros des photos dans l’ordre du rapport, repère « À 
   await expect(probe).toHaveAttribute('aria-pressed', 'true');
 
   // filtre de la fiche
-  await page.getByRole('button', { name: '🔍 À sonder seulement' }).click();
+  await page.getByRole('button', { name: 'À sonder seulement' }).click();
   await expect(page.locator('#item-couv-type')).toHaveCount(0);
   await expect(etat).toBeVisible();
-  await page.getByRole('button', { name: '🔍 À sonder seulement' }).click();
+  await page.getByRole('button', { name: 'À sonder seulement' }).click();
   await expect(page.locator('#item-couv-type')).toHaveCount(1);
 
   await openSheet(page, 'Synthèse et clôture');
@@ -58,16 +58,16 @@ test('mode avion : numéros des photos dans l’ordre du rapport, repère « À 
   // mise à jour : le repère est repris, puis levé
   await openSheet(page, 'Synthèse et clôture');
   await page.getByRole('button', { name: 'Clôturer la visite' }).click();
-  await page.getByRole('link', { name: 'Mise à jour ou sauvegarde →' }).click();
-  await page.getByRole('button', { name: '+ Nouvelle mise à jour' }).click();
+  await page.getByRole('link', { name: 'Mise à jour ou sauvegarde' }).click();
+  await page.getByRole('button', { name: 'Nouvelle mise à jour' }).click();
   await page.getByRole('button', { name: 'Créer la mise à jour' }).click();
   await expect(page.getByText('Mise à jour 1 — suite à curage')).toBeVisible();
   await openSheet(page, /Bâtiment B/);
   etat = page.locator('#item-couv-tuiles-etat');
-  await expect(etat.getByRole('button', { name: '🔍 À sonder' })).toHaveAttribute('aria-pressed', 'true');
-  await etat.getByRole('button', { name: '🔍 À sonder' }).click();
+  await expect(etat.getByRole('button', { name: 'À sonder', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await etat.getByRole('button', { name: 'À sonder', exact: true }).click();
   await expect(etat.getByText('Était à sonder')).toBeVisible();
-  await page.getByRole('button', { name: '🔍 À sonder seulement' }).click();
+  await page.getByRole('button', { name: 'À sonder seulement' }).click();
   await expect(etat).toBeVisible();
 
   await openSheet(page, 'Synthèse et clôture');

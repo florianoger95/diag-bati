@@ -12,6 +12,7 @@ import {
   URGENCIES,
   URGENCY_LABELS,
   URGENCY_LEGEND,
+  URGENCY_LEVEL,
   Urgency,
 } from '../../../core/model/data';
 import { ResolvedItem } from '../../../core/model/template';
@@ -20,6 +21,8 @@ import { isOutOfRange } from '../../../core/templates/template-engine';
 import { AutoGrowDirective } from '../../../shared/auto-grow.directive';
 import { NumberInputComponent } from '../../../shared/number-input.component';
 import { MediaRequest, PhotoStripComponent, PhotoView } from '../../../shared/photo-strip.component';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { UrgencyComponent, UrgencyMeterComponent } from '../../../shared/ui/urgency.component';
 import { ActionsFieldComponent } from './actions-field.component';
 import { MeasuresFieldComponent } from './measures-field.component';
 
@@ -41,7 +44,10 @@ export interface FieldChange {
 /** Rendu d'un item du modèle, quel que soit son type. Ne connaît pas la base : émet des modifications. */
 @Component({
   selector: 'app-item-field',
-  imports: [AutoGrowDirective, NumberInputComponent, MeasuresFieldComponent, ActionsFieldComponent, PhotoStripComponent],
+  imports: [
+    AutoGrowDirective, NumberInputComponent, MeasuresFieldComponent, ActionsFieldComponent, PhotoStripComponent,
+    IconComponent, UrgencyComponent, UrgencyMeterComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './item-field.component.html',
   styleUrl: './item-field.component.scss',
@@ -80,6 +86,7 @@ export class ItemFieldComponent {
 
   readonly urgencies = URGENCIES;
   readonly urgencyLabels = URGENCY_LABELS;
+  readonly urgencyLevel = URGENCY_LEVEL;
   readonly urgencyLegend = URGENCY_LEGEND;
   readonly OTHER = OTHER_VALUE;
   readonly showHelp = signal(false);

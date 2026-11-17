@@ -36,6 +36,8 @@ import {
 import { PlanTransform } from '../../../core/media/plan-transform';
 import { Photo } from '../../../core/model/data';
 import { DialogService } from '../../../core/services/dialog.service';
+import { IconComponent } from '../../../shared/ui/icon.component';
+import { IconName } from '../../../shared/ui/icons';
 import { VisitStore } from '../visit-store';
 
 /** `locate` : mode localisation d'une photo sur ce plan (pas dans la barre d'outils). */
@@ -44,17 +46,17 @@ export type Tool = 'select' | ShapeKind | 'locate';
 /** Glissé minimal (px à l'écran) pour donner une direction à la localisation. */
 const MIN_DIRECTION_PX = 14;
 
-const TOOLS: { id: Tool; label: string; icon: string }[] = [
-  { id: 'select', label: 'Sélectionner / déplacer', icon: '☝' },
-  { id: 'arrow', label: 'Flèche', icon: '↗' },
-  { id: 'line', label: 'Trait droit', icon: '╱' },
-  { id: 'rect', label: 'Rectangle', icon: '▭' },
-  { id: 'ellipse', label: 'Ellipse', icon: '◯' },
-  { id: 'free', label: 'Trait libre', icon: '✎' },
-  { id: 'zone', label: 'Zone', icon: '▨' },
-  { id: 'text', label: 'Texte', icon: 'T' },
-  { id: 'badge', label: 'Pastille numérotée', icon: '①' },
-  { id: 'stamp', label: 'Tampon', icon: '◎' },
+const TOOLS: { id: Tool; label: string; icon: IconName }[] = [
+  { id: 'select', label: 'Sélectionner / déplacer', icon: 'cursor' },
+  { id: 'arrow', label: 'Flèche', icon: 'arrow' },
+  { id: 'line', label: 'Trait droit', icon: 'line' },
+  { id: 'rect', label: 'Rectangle', icon: 'rect' },
+  { id: 'ellipse', label: 'Ellipse', icon: 'ellipse' },
+  { id: 'free', label: 'Trait libre', icon: 'freehand' },
+  { id: 'zone', label: 'Zone', icon: 'hatch' },
+  { id: 'text', label: 'Texte', icon: 'text' },
+  { id: 'badge', label: 'Pastille numérotée', icon: 'pastille' },
+  { id: 'stamp', label: 'Tampon', icon: 'stamp' },
 ];
 
 const MIN_SIZE = 0.01;
@@ -64,6 +66,7 @@ const SAVE_DELAY = 500;
 @Component({
   selector: 'app-annotator-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [IconComponent],
   templateUrl: './annotator.page.html',
   styleUrl: './annotator.page.scss',
 })
@@ -285,7 +288,7 @@ export class AnnotatorPage {
       ctx.rect(0, 0, w, h);
       ctx.rect(crop.x * w, crop.y * h, crop.w * w, crop.h * h);
       ctx.fill('evenodd');
-      ctx.strokeStyle = '#ff9e1b';
+      ctx.strokeStyle = '#96f6e9'; // vert clair 3DE
       ctx.lineWidth = 2;
       ctx.setLineDash([8, 5]);
       ctx.strokeRect(crop.x * w, crop.y * h, crop.w * w, crop.h * h);

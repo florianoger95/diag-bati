@@ -50,20 +50,20 @@ import { DialogService } from '../core/services/dialog.service';
     }
   `,
   styles: `
-    .backdrop { position: fixed; inset: 0; background: rgb(0 0 0 / .45); z-index: 50; }
+    .backdrop { position: fixed; inset: 0; background: rgba(25, 28, 31, .5); z-index: 50; }
     .dialog {
       position: fixed; z-index: 51; left: 50%; top: 18%; transform: translateX(-50%);
-      width: min(560px, calc(100vw - 32px)); box-shadow: 0 12px 40px rgb(0 0 0 / .3);
+      width: min(560px, calc(100vw - 32px)); box-shadow: var(--shadow-pop); padding: 20px 24px;
     }
     .message { white-space: pre-line; }
-    .actions { justify-content: flex-end; margin-top: 16px; }
+    .actions { justify-content: flex-end; margin: 16px -24px -20px; padding: 12px 24px 16px; border-top: 1px solid var(--border-soft); }
     .suggestions { margin-bottom: 12px; }
     .toast {
       position: fixed; z-index: 60; left: 50%; transform: translateX(-50%);
       bottom: calc(24px + var(--safe-bottom)); max-width: calc(100vw - 32px);
-      padding: 14px 20px; border-radius: var(--radius); background: var(--text); color: #fff; font-weight: 600;
+      padding: 14px 20px; border-radius: var(--radius-card); background: var(--dark); color: #fff; font-weight: 600; box-shadow: var(--shadow-pop);
     }
-    .toast.error { background: var(--danger); }
+    .toast.error { background: var(--error); }
   `,
 })
 export class DialogHostComponent {

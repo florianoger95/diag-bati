@@ -60,7 +60,7 @@ test('rapport d’exemple (PDF et Word) pour relecture', async ({ page }) => {
   await page.getByLabel('Coordonnées (une ligne par information)').fill('1 rue du Test 00000 VILLE\ncontact@exemple.fr\n01 02 03 04 05');
   await page.getByTestId('import-logo').setInputFiles({ name: 'logo.jpg', mimeType: 'image/jpeg', buffer: await makeJpeg(page, 600, 240) });
   await page.waitForTimeout(500);
-  await page.getByRole('link', { name: '← Dossiers' }).click();
+  await page.getByRole('link', { name: 'Dossiers', exact: true }).click();
 
   await createProject(page, 'PROJET MAISON DES TILLEULS');
   await page.locator('#item-temperature-ext input').fill('21,6');
@@ -79,7 +79,7 @@ test('rapport d’exemple (PDF et Word) pour relecture', async ({ page }) => {
   await page.getByRole('button', { name: 'Ajouter à la légende' }).click();
   await page.getByLabel("Légende de l'image").fill('Plan de couverture avec repérage des désordres');
   await page.waitForTimeout(700);
-  await page.getByRole('button', { name: '← Retour' }).click();
+  await page.getByRole('button', { name: 'Retour' }).click();
 
   await page.locator('#item-couv-type').getByRole('button', { name: '2 pans' }).click();
   await page.locator('#item-couv-nature').getByRole('button', { name: 'Tuile mécanique' }).click();
@@ -125,7 +125,7 @@ test('rapport d’exemple (PDF et Word) pour relecture', async ({ page }) => {
 
   await openSheet(page, 'Rapport PDF / Word');
   for (const format of ['pdf', 'docx'] as const) {
-    await page.getByRole('button', { name: format === 'pdf' ? '📄 Générer le PDF' : '📝 Générer le Word (.docx)' }).click();
+    await page.getByRole('button', { name: format === 'pdf' ? 'Générer le PDF' : 'Générer le Word (.docx)' }).click();
     const card = page.getByRole('region', { name: `Rapport ${format}` });
     await card.waitFor({ timeout: 60_000 });
     const href = await card.getByRole('link', { name: 'Ouvrir' }).getAttribute('href');

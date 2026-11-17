@@ -3,7 +3,7 @@
   display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
   min-height: var(--target); padding: 8px 12px; border-radius: var(--radius);
   background: var(--surface); color: var(--text); text-decoration: none;
+  border-left: 4px solid transparent;
 }
-.obs { flex-basis: 100%; color: var(--muted); font-size: 16px; }
+.entry-obs { flex-basis: 100%; color: var(--muted); font-size: var(--fs-sm); }
 .closing { margin-top: 8px; }
-.badge-probe { background: #1f4e79; color: #fff; }

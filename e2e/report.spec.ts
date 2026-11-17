@@ -38,13 +38,13 @@ test('mode avion : réglages du cabinet, lexique à la saisie, rapport PDF et Wo
   await page.getByTestId('import-logo').setInputFiles({ name: 'logo.jpg', mimeType: 'image/jpeg', buffer: jpeg });
   await expect(page.getByAltText('Logo du cabinet')).toBeVisible();
   await page.getByTestId('import-font').setInputFiles({ name: 'MAIAN.TTF', mimeType: 'font/ttf', buffer: font });
-  await expect(page.getByText('✓ Overlock')).toBeVisible();
+  await expect(page.getByText('Overlock', { exact: true })).toBeVisible();
   await page.getByTestId('import-annex').setInputFiles({ name: 'annexe.pdf', mimeType: 'application/pdf', buffer: annexPdf });
-  await expect(page.getByText('✓ annexe.pdf')).toBeVisible();
+  await expect(page.getByText('annexe.pdf', { exact: true })).toBeVisible();
   await page.waitForTimeout(500);
 
   // Saisie
-  await page.getByRole('link', { name: '← Dossiers' }).click();
+  await page.getByRole('link', { name: 'Dossiers', exact: true }).click();
   await createProject(page, 'PROJET RAPPORT');
   await openSheet(page, /Bâtiment 1/);
   const etat = page.locator('#item-couv-tuiles-etat');
@@ -64,13 +64,13 @@ test('mode avion : réglages du cabinet, lexique à la saisie, rapport PDF et Wo
 
   // PDF
   await openSheet(page, 'Rapport PDF / Word');
-  await page.getByRole('button', { name: '📄 Générer le PDF' }).click();
+  await page.getByRole('button', { name: 'Générer le PDF' }).click();
   const pdf = await PDFDocument.load(await fetchResult(page, 'pdf'));
   expect(pdf.getTitle()).toMatch(/PROJET RAPPORT$/);
   expect(pdf.getPageCount()).toBeGreaterThanOrEqual(5); // garde, couverture, synthèse, travaux, annexe ×2
 
   // Word
-  await page.getByRole('button', { name: '📝 Générer le Word (.docx)' }).click();
+  await page.getByRole('button', { name: 'Générer le Word (.docx)' }).click();
   const zip = await JSZip.loadAsync(await fetchResult(page, 'docx'));
   const xml = await zip.file('word/document.xml')!.async('string');
   expect(xml).toContain('PROJET RAPPORT');

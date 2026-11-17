@@ -1,7 +1,7 @@
 @if (photo(); as p) {
   <div class="annotator" role="dialog" aria-modal="true" [attr.aria-label]="'Annotation ' + number()">
     <header class="bar">
-      <button class="btn btn-small" type="button" (click)="close()">← Retour</button>
+      <button class="btn btn-small" type="button" (click)="close()"><app-icon name="left" />Retour</button>
       <div class="title">
         <strong>{{ p.kind === 'photo' ? 'Photo' : p.kind === 'plan' ? 'Plan' : 'Croquis' }} {{ number() }}</strong>
         <span class="where">{{ location() }}</span>
@@ -9,16 +9,16 @@
       <input class="input caption" type="text" placeholder="Légende de l'image…" [value]="caption()"
              [readOnly]="readonly()" (input)="onCaption($any($event.target).value)" aria-label="Légende de l'image" />
       @if (canLocate()) {
-        <button class="btn btn-small" type="button" (click)="locateOnPlan()">📍 Situer sur le plan</button>
+        <button class="btn btn-small" type="button" (click)="locateOnPlan()"><app-icon name="pin" />Situer sur le plan</button>
       }
       @if (!readonly() && !locating()) {
-        <button class="btn btn-small btn-danger" type="button" (click)="remove()">Supprimer</button>
+        <button class="btn btn-small btn-danger" type="button" (click)="remove()"><app-icon name="trash" />Supprimer</button>
       }
     </header>
 
     @if (locating()) {
-      <div class="locate-banner" role="status">
-        <span>📍 <strong>Photo {{ locatingNumber() }}</strong> : touchez l'endroit de la prise de vue, puis glissez vers ce qu'elle montre.</span>
+      <div class="situer-banner" role="status">
+        <span class="situer-text"><app-icon name="pin" /><span><strong>Photo {{ locatingNumber() }}</strong> : touchez l'endroit de la prise de vue, puis glissez vers ce qu'elle montre.</span></span>
         <span class="spacer"></span>
         <button class="btn btn-small" type="button" (click)="finishLocate()">Annuler</button>
       </div>
@@ -32,9 +32,9 @@
                 [attr.aria-label]="'Annotations : ' + shapes().length"></canvas>
       </div>
       <div class="zoom">
-        <button class="btn btn-small" type="button" (click)="zoom(1.5)" aria-label="Zoomer">＋</button>
-        <button class="btn btn-small" type="button" (click)="zoom(1 / 1.5)" aria-label="Dézoomer">－</button>
-        <button class="btn btn-small" type="button" (click)="fit()">Ajuster</button>
+        <button class="btn btn-small" type="button" (click)="zoom(1.5)" aria-label="Zoomer"><app-icon name="zoom-in" /></button>
+        <button class="btn btn-small" type="button" (click)="zoom(1 / 1.5)" aria-label="Dézoomer"><app-icon name="zoom-out" /></button>
+        <button class="btn btn-small" type="button" (click)="fit()"><app-icon name="fit" />Ajuster</button>
       </div>
     </div>
 
@@ -49,10 +49,10 @@
     @if (canAdjust() && !locating()) {
       <div class="adjust" role="group" aria-label="Ajuster le plan">
         <span class="light">Ajuster le plan (avant de l'annoter) :</span>
-        <button class="btn btn-small" type="button" [disabled]="adjusting()" (click)="rotate(270)">⟲ Pivoter à gauche</button>
-        <button class="btn btn-small" type="button" [disabled]="adjusting()" (click)="rotate(90)">⟳ Pivoter à droite</button>
+        <button class="btn btn-small" type="button" [disabled]="adjusting()" (click)="rotate(270)"><app-icon name="undo" />Pivoter à gauche</button>
+        <button class="btn btn-small" type="button" [disabled]="adjusting()" (click)="rotate(90)"><app-icon name="redo" />Pivoter à droite</button>
         <button class="btn btn-small" type="button" [attr.aria-pressed]="cropMode()" [disabled]="adjusting()" (click)="toggleCrop()">
-          ✂ {{ cropMode() ? 'Annuler le recadrage' : 'Recadrer' }}
+          <app-icon name="fit" />{{ cropMode() ? 'Annuler le recadrage' : 'Recadrer' }}
         </button>
         @if (cropMode()) {
           <span class="light">Tracez le cadre à garder.</span>
@@ -67,7 +67,7 @@
         <div class="group" role="toolbar" aria-label="Outils">
           @for (t of tools; track t.id) {
             <button class="tool" type="button" [attr.aria-pressed]="tool() === t.id" [attr.aria-label]="t.label"
-                    [title]="t.label" (click)="setTool(t.id)">{{ t.icon }}</button>
+                    [title]="t.label" (click)="setTool(t.id)"><app-icon [name]="t.icon" /></button>
           }
         </div>
 
@@ -126,7 +126,7 @@
             }
             @case ('select') {
               @if (selectedId()) {
-                <button class="btn btn-small" type="button" (click)="duplicateSelected()">⧉ Dupliquer</button>
+                <button class="btn btn-small" type="button" (click)="duplicateSelected()"><app-icon name="copy" />Dupliquer</button>
                 <button class="btn btn-small btn-danger" type="button" (click)="deleteSelected()">Supprimer la forme</button>
               } @else {
                 <span class="hint light">Touchez une forme pour la déplacer.</span>
@@ -139,8 +139,8 @@
             }
           }
           <span class="spacer"></span>
-          <button class="btn btn-small" type="button" [disabled]="!canUndo()" (click)="undo()" aria-label="Annuler">↶ Annuler</button>
-          <button class="btn btn-small" type="button" [disabled]="!canRedo()" (click)="redo()" aria-label="Rétablir">↷ Rétablir</button>
+          <button class="btn btn-small" type="button" [disabled]="!canUndo()" (click)="undo()" aria-label="Annuler"><app-icon name="undo" />Annuler</button>
+          <button class="btn btn-small" type="button" [disabled]="!canRedo()" (click)="redo()" aria-label="Rétablir"><app-icon name="redo" />Rétablir</button>
         </div>
       </footer>
     }

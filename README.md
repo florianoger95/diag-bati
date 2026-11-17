@@ -6,17 +6,26 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
 État :
 - **Lot 1** : socle, dossiers, fiches pilotées par JSON, synthèse et clôture.
 - **Lot 2** : photos sur chaque item, plans PDF, croquis, annotation au doigt, légende, conclusion.
-
 - **Lot 3** : rapports PDF et Word, lexique avec astérisques automatiques, réglages du cabinet.
 - **Lot 4** : mises à jour successives, sauvegarde et restauration, modèles importés, indicateur « Prête hors ligne ».
 - **Lot 5a** : retours terrain sur l'annotation, les plans et les définitions des urgences.
 - **Lot 5b** : repère « À sonder », liste des sondages, numéros des photos dans l'ordre du rapport.
 - **Lot 5c** : plusieurs observations par item, photos situées sur le plan de référence de la fiche.
+- **Lot 6a** : charte 3DE (couleurs, polices, monogramme, pictogrammes), accueil en cartes de dossier.
+
+## Charte 3DE (lot 6a)
+
+- Design system issu de Claude Design, direction « Atelier » : jetons et composants dans `src/styles.scss`.
+- Polices Raleway (titres) et Open Sans (texte) embarquées dans `src/fonts/` (licence OFL), aucun CDN.
+- Pictogrammes SVG en ligne : `<app-icon name="…">`, liste dans `src/app/shared/ui/icons.ts`.
+  Un test interdit les emoji et symboles servant d'icône dans les écrans.
+- Le rouge est réservé aux désordres ; l'urgence se lit aussi par le nombre de barres (`<app-urgency>`).
+- Le monogramme 3DE de l'interface est dans `public/brand/`. Le logo du rapport reste importé dans les Réglages.
 
 ## Plusieurs observations par item
 
-- Le bouton **+ Observation** ajoute une observation à l'item. Chacune a son « 🔍 À sonder » et son « ⚠ Désordre ».
-  À partir de la deuxième, chacune peut aussi être retirée (« ✕ Retirer »). Les photos restent rattachées à l'item.
+- Le bouton **+ Observation** ajoute une observation à l'item. Chacune a son « À sonder » et son « Désordre ».
+  À partir de la deuxième, chacune peut aussi être retirée (« Retirer »). Les photos restent rattachées à l'item.
 - Dans le rapport, la première observation reste sur la ligne de l'item ; les suivantes forment des paragraphes en retrait.
   La synthèse des désordres et la liste des sondages ont une entrée par observation.
 - Les dossiers existants n'ont rien à convertir : leur observation devient la première.
@@ -27,16 +36,16 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
   - Couverture : son propre plan, sinon le plan de toiture ou de masse.
   - Façades : les plans de façades.
   - Pièces : le plan du niveau, à **choisir en tête de la fiche pièce** s'il y en a plusieurs.
-- Après une photo, le bouton **📍 Situer la photo n** ouvre le plan. Dans l'annotateur d'une photo, c'est « 📍 Situer sur le plan ».
+- Après une photo, le bouton **Situer la photo n** ouvre le plan. Dans l'annotateur d'une photo, c'est « Situer sur le plan ».
   1. Touchez l'endroit de la prise de vue.
   2. Glissez vers ce que la photo montre.
   3. Une pastille fléchée au numéro de la photo est posée sur le plan, et l'on revient à l'item.
-- Situer à nouveau une photo déplace sa pastille. Une photo située porte 📍 sur sa vignette.
+- Situer à nouveau une photo déplace sa pastille. Une photo située porte un repère d'épingle sur sa vignette.
 - Les dossiers créés avant ce lot utilisent les plans de référence du modèle livré.
 
 ## Repère « À sonder »
 
-- Le bouton **🔍 À sonder**, à côté de « ⚠ Désordre », marque l'observation d'un item. Il se cumule avec un désordre.
+- Le bouton **À sonder**, à côté de « Désordre », marque l'observation d'un item. Il se cumule avec un désordre.
 - Le filtre **« À sonder seulement »** de la fiche n'affiche que ces items. La synthèse les liste sous « Sondages à réaliser ».
 - Dans le rapport :
   - « — À sonder » s'ajoute à la ligne de l'item ;
@@ -58,11 +67,11 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
 
 ## Sauvegarde et restauration
 
-- **⇪ Exporter**, sur l'accueil ou dans la fiche du dossier, produit une archive `.diag.zip`.
+- **Exporter**, sur l'accueil ou dans la fiche du dossier, produit une archive `.diag.zip`.
   - Elle contient toutes les visites, réponses, photos, plans et annotations.
   - Sur l'iPad, elle s'enregistre via la feuille de partage : iCloud Drive, AirDrop, Mail.
   - Le dossier passe alors en « exporté » et le bandeau rouge disparaît.
-- **⇩ Restaurer une sauvegarde** sur l'accueil. Si le dossier existe déjà, l'app propose de le remplacer ou d'en importer une copie.
+- **Restaurer une sauvegarde** sur l'accueil. Si le dossier existe déjà, l'app propose de le remplacer ou d'en importer une copie.
 - **Réglages → Sauvegarde des réglages** : cabinet, logo, police et annexe, pour préparer un autre iPad.
 - L'archive se lit sur un ordinateur : `data.json` et les images ou PDF tels quels.
 
@@ -75,11 +84,11 @@ Réglages → Modèles de fiches → **Importer un modèle (.json)**.
 
 ## Avant de partir sur le terrain
 
-Ouvrir l'app connecté jusqu'à voir **« Prête hors ligne ✓ »** en bas de l'accueil : tous les fichiers sont alors en cache.
+Ouvrir l'app connecté jusqu'à voir **« Prête hors ligne »** en bas de l'accueil : tous les fichiers sont alors en cache.
 
 ## Rapports PDF et Word
 
-- **Réglages** (⚙ en haut à droite), à faire une fois :
+- **Réglages** (roue dentée en haut à droite), à faire une fois :
   - nom et coordonnées du cabinet, logo ;
   - police Maiandra GD : copier `C:\Windows\Fonts\MAIAN.TTF` dans iCloud Drive, puis l'importer ;
   - annexe lexique : PDF exporté de Word, depuis un document sans en-tête ni pied de page.
@@ -93,16 +102,16 @@ Ouvrir l'app connecté jusqu'à voir **« Prête hors ligne ✓ »** en bas de l
 
 ## Photos, plans et annotation
 
-- Chaque item a ses boutons 📷 (appareil photo) et 🖼 (photothèque, plusieurs photos à la fois).
+- Chaque item a ses boutons « Appareil photo » et « Photothèque » (plusieurs photos à la fois).
   Les photos sont réduites à 1600 px en JPEG dès la prise de vue, une à la fois ; l'original n'est pas conservé.
-- **Plans et croquis** (menu de la visite, ou items « plan » des fiches) : 📄 page d'un plan PDF (choix de la page),
-  📷 photo d'un plan papier, ✏️ croquis sur fond blanc. La page de PDF est aussi gardée en vectoriel pour le rapport.
+- **Plans et croquis** (menu de la visite, ou items « plan » des fiches) : « Plan PDF » (choix de la page),
+  « Image du plan », « Photo d'un plan » papier, « Croquis » sur fond blanc. La page de PDF est aussi gardée en vectoriel pour le rapport.
 - **Annotation** : touchez une vignette.
-  - Un doigt dessine, deux doigts zooment et déplacent ; les boutons ＋ / － / Ajuster permettent aussi de zoomer.
+  - Un doigt dessine, deux doigts zooment et déplacent ; les boutons zoomer / dézoomer / Ajuster permettent aussi de zoomer.
   - Outils : flèche, trait droit, rectangle, ellipse, trait libre, zone (touchez les angles, puis « Terminer la zone »), texte,
     pastille (1-2-3 ou A-B-C, ou numéro d'une autre photo), tampon (« À SONDER », « TÉMOIN », « VOIR PHOTO »).
-  - Annuler / rétablir. L'outil ☝ sélectionne une forme pour la déplacer, la dupliquer, la recolorer ou la supprimer.
-  - **Pivoter et recadrer un plan** : à l'import, tant qu'il n'est pas annoté (⟲ ⟳ ✂ au-dessus des outils).
+  - Annuler / rétablir. L'outil « Sélectionner / déplacer » sélectionne une forme pour la déplacer, la dupliquer, la recolorer ou la supprimer.
+  - **Pivoter et recadrer un plan** : à l'import, tant qu'il n'est pas annoté (« Pivoter à gauche », « Pivoter à droite », « Recadrer » au-dessus des outils).
     L'image et la page PDF vectorielle sont transformées ensemble.
   - Les vignettes des fiches montrent les annotations (croquis compris).
 - **Numéros** : chaque nature a sa suite (Photo 1…, Plan 1…, Croquis 1…), dans l'ordre où les images paraissent dans le rapport.

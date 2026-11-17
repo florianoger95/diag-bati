@@ -11,7 +11,7 @@ test('mode avion : deux observations sur un item, chacune avec son désordre', a
   await openSheet(page, /Bâtiment 1/);
   const etat = page.locator('#item-couv-tuiles-etat');
   await etat.getByRole('textbox', { name: /^Observations/ }).fill('Tuiles poreuses en partie courante.');
-  await etat.getByRole('button', { name: '+ Observation' }).click();
+  await etat.getByRole('button', { name: 'Observation', exact: true }).click();
   const second = etat.getByRole('textbox', { name: /^Observation 2/ });
   await expect(second).toBeFocused();
   await second.fill('Rive gauche : lattis pourri.');
@@ -60,11 +60,11 @@ test('mode avion : photo d’une pièce située sur le plan de son niveau', asyn
   await expect(item.getByRole('button', { name: /^Photo 1/ })).toBeVisible();
 
   // plusieurs niveaux : le plan se choisit sur la fiche
-  await item.getByRole('button', { name: '📍 Situer la photo 1' }).click();
+  await item.getByRole('button', { name: 'Situer la photo 1' }).click();
   await expect(page.getByText('Choisissez d’abord le plan de référence en haut de la fiche.')).toBeVisible();
   const select = page.getByLabel('Plan de référence de la fiche');
   await select.selectOption({ label: await select.locator('option').nth(2).innerText() });
-  await item.getByRole('button', { name: '📍 Situer la photo 1' }).click();
+  await item.getByRole('button', { name: 'Situer la photo 1' }).click();
 
   await expect(page.getByText(/Photo 1 : touchez l'endroit de la prise de vue/)).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Annotation 2' })).toBeVisible(); // plan du R+1

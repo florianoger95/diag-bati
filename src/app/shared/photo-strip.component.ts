@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { IconComponent } from './ui/icon.component';
 
 export interface PhotoView {
   id: string;
@@ -21,6 +22,7 @@ export interface MediaRequest {
 /** Vignettes numérotées + boutons d'ajout (appareil photo, photothèque, plan PDF, croquis). */
 @Component({
   selector: 'app-photo-strip',
+  imports: [IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (showThumbs() && photos().length) {
@@ -30,9 +32,9 @@ export interface MediaRequest {
             <button class="thumb" type="button" (click)="open.emit(p.id)"
                     [attr.aria-label]="label(p) + (p.caption ? ' — ' + p.caption : '') + (p.located ? ' (située sur le plan)' : '')">
               @if (p.url) { <img [src]="p.url" alt="" loading="lazy" /> }
-              <span class="num">{{ p.number }}</span>
-              @if (p.annotated) { <span class="mark" aria-hidden="true">✎</span> }
-              @if (p.located) { <span class="pin" title="Située sur le plan">📍</span> }
+              <span class="thumb-num">{{ p.number }}</span>
+              @if (p.annotated) { <span class="thumb-flag is-annotated" aria-hidden="true"><app-icon name="pen" size="sm" /></span> }
+              @if (p.located) { <span class="thumb-flag is-located" title="Située sur le plan"><app-icon name="pin" size="sm" /></span> }
               @if (p.caption) { <span class="caption">{{ p.caption }}</span> }
             </button>
           </li>
@@ -42,15 +44,15 @@ export interface MediaRequest {
     @if (!readonly() && showActions()) {
       <div class="actions">
         @if (mode() === 'plan') {
-          <button class="btn btn-small" type="button" (click)="pdf.click()">📄 Plan PDF</button>
-          <button class="btn btn-small" type="button" (click)="planImage.click()">🖼 Image du plan</button>
-          <button class="btn btn-small" type="button" (click)="planCam.click()">📷 Photo d'un plan</button>
-          <button class="btn btn-small" type="button" (click)="add.emit({ source: 'sketch' })">✏️ Croquis</button>
+          <button class="btn btn-small" type="button" (click)="pdf.click()"><app-icon name="doc" size="sm" />Plan PDF</button>
+          <button class="btn btn-small" type="button" (click)="planImage.click()"><app-icon name="image" size="sm" />Image du plan</button>
+          <button class="btn btn-small" type="button" (click)="planCam.click()"><app-icon name="camera" size="sm" />Photo d'un plan</button>
+          <button class="btn btn-small" type="button" (click)="add.emit({ source: 'sketch' })"><app-icon name="pen" size="sm" />Croquis</button>
         } @else {
           <button class="btn btn-small" type="button" (click)="cam.click()"
-                  [attr.aria-label]="mode() === 'compact' ? 'Prendre une photo' : null">📷{{ mode() === 'compact' ? '' : ' Appareil photo' }}</button>
+                  [attr.aria-label]="mode() === 'compact' ? 'Prendre une photo' : null"><app-icon name="camera" />{{ mode() === 'compact' ? '' : 'Appareil photo' }}</button>
           <button class="btn btn-small" type="button" (click)="lib.click()"
-                  [attr.aria-label]="mode() === 'compact' ? 'Ajouter depuis la photothèque' : null">🖼{{ mode() === 'compact' ? '' : ' Photothèque' }}</button>
+                  [attr.aria-label]="mode() === 'compact' ? 'Ajouter depuis la photothèque' : null"><app-icon name="image" />{{ mode() === 'compact' ? '' : 'Photothèque' }}</button>
         }
       </div>
       <input #cam type="file" accept="image/*" capture="environment" hidden (change)="pick($event, 'camera')" />
@@ -62,24 +64,14 @@ export interface MediaRequest {
   `,
   styles: `
     :host { display: flex; flex-direction: column; gap: 8px; }
-    .thumbs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-    .thumb {
-      position: relative; display: block; width: 112px; height: 112px; padding: 0; overflow: hidden;
-      border: 2px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer;
-    }
+    .thumbs { list-style: none; margin: 0; padding: 0; gap: var(--s-2); }
+    .thumb { display: block; width: 120px; height: 96px; box-shadow: inset 0 0 0 1px var(--border-soft); }
     .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .num, .mark {
-      position: absolute; top: 4px; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 14px;
-      display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px;
-      background: var(--primary); color: #fff;
-    }
-    .num { left: 4px; }
-    .mark { right: 4px; background: #c98a00; color: #000; }
-    .pin { position: absolute; right: 4px; bottom: 4px; font-size: 20px; line-height: 1; filter: drop-shadow(0 0 2px #fff); }
     .caption {
       position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 6px; font-size: 13px; line-height: 1.3;
-      background: rgb(0 0 0 / .65); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      background: rgb(25 28 31 / .75); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
+    .thumb:has(.caption) .thumb-flag { bottom: 26px; }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; }
   `,
 })

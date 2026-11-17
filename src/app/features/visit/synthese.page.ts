@@ -3,12 +3,14 @@ import { RouterLink } from '@angular/router';
 import { URGENCIES, URGENCY_LABELS, URGENCY_LEGEND, Urgency } from '../../core/model/data';
 import { DialogService } from '../../core/services/dialog.service';
 import { ActionRef, collectActions, collectDefects, collectProbes, missingRequired } from '../../core/templates/template-engine';
+import { IconComponent } from '../../shared/ui/icon.component';
+import { UrgencyComponent } from '../../shared/ui/urgency.component';
 import { VisitStore } from './visit-store';
 
 /** Synthèse avant clôture : désordres, mesures de sécurité, récapitulatif des travaux, oublis. */
 @Component({
   selector: 'app-synthese-page',
-  imports: [RouterLink],
+  imports: [RouterLink, IconComponent, UrgencyComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './synthese.page.html',
   styleUrl: './synthese.page.scss',

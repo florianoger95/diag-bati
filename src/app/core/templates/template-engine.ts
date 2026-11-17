@@ -233,6 +233,30 @@ export function collectProbes(template: ResolvedTemplate, visit: Visit, answers:
   return probes;
 }
 
+export interface VisitOverview extends Progress {
+  defects: Record<Urgency, number>;
+  /** Repères « À sonder » encore posés (les levés ne comptent pas). */
+  probes: number;
+  /** Réponses modifiées dans cette mise à jour (0 pour la visite initiale). */
+  revised: number;
+}
+
+/** Résumé d'une visite pour la carte du dossier sur l'accueil. */
+export function visitOverview(template: ResolvedTemplate, visit: Visit, answers: Answer[]): VisitOverview {
+  const progress = visit.instances.reduce<Progress>((acc, instance) => {
+    const p = instanceProgress(sectionItems(template, instance.sectionId), answers.filter((a) => a.instanceId === instance.id));
+    return { answered: acc.answered + p.answered, total: acc.total + p.total };
+  }, { answered: 0, total: 0 });
+  const defects = Object.fromEntries(URGENCIES.map((u) => [u, 0])) as Record<Urgency, number>;
+  for (const d of collectDefects(template, visit, answers)) defects[d.urgency]++;
+  return {
+    ...progress,
+    defects,
+    probes: collectProbes(template, visit, answers).filter((p) => !p.done).length,
+    revised: answers.filter((a) => isRevised(a, visit.revision, 'latest')).length,
+  };
+}
+
 export interface ActionRef extends ItemRef, ActionRow {
   role?: ItemRole;
 }

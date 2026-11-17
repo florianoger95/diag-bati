@@ -1,3 +1,4 @@
+import { IconComponent } from '../../shared/ui/icon.component';
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, Injector, input, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Photo } from '../../core/model/data';
@@ -12,7 +13,7 @@ import { VisitStore } from './visit-store';
 
 @Component({
   selector: 'app-instance-page',
-  imports: [RouterLink, ItemFieldComponent],
+  imports: [RouterLink, ItemFieldComponent, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './instance.page.html',
   styleUrl: './instance.page.scss',

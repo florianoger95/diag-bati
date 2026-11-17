@@ -3,7 +3,7 @@ import JSZip from 'jszip';
 
 /** Génère le rapport Word depuis la page Rapport et renvoie son `document.xml`. */
 export async function docxXml(page: Page): Promise<string> {
-  await page.getByRole('button', { name: '📝 Générer le Word (.docx)' }).click();
+  await page.getByRole('button', { name: 'Générer le Word (.docx)' }).click();
   const card = page.getByRole('region', { name: 'Rapport docx' });
   await expect(card).toBeVisible({ timeout: 60_000 });
   const href = await card.getByRole('link', { name: 'Ouvrir' }).getAttribute('href');
@@ -31,13 +31,13 @@ export async function waitForOfflineReady(page: Page): Promise<void> {
 
 /** Ouvre une fiche ou une page de la visite (via le tiroir en portrait). */
 export async function openSheet(page: Page, name: string | RegExp): Promise<void> {
-  const drawer = page.getByRole('button', { name: '☰ Fiches' });
+  const drawer = page.getByRole('button', { name: 'Fiches', exact: true });
   if (await drawer.isVisible()) await drawer.click();
   await page.getByRole('navigation', { name: 'Fiches de la visite' }).getByRole('link', { name }).click();
 }
 
 export async function addInstance(page: Page, button: string, label: string): Promise<void> {
-  const drawer = page.getByRole('button', { name: '☰ Fiches' });
+  const drawer = page.getByRole('button', { name: 'Fiches', exact: true });
   if (await drawer.isVisible()) await drawer.click();
   await page.getByRole('button', { name: button }).click();
   await page.getByRole('button', { name: label }).click();
@@ -45,7 +45,7 @@ export async function addInstance(page: Page, button: string, label: string): Pr
 }
 
 export async function createProject(page: Page, name: string): Promise<void> {
-  await page.getByRole('link', { name: '+ Nouveau dossier' }).click();
+  await page.getByRole('link', { name: 'Nouveau dossier' }).click();
   await page.locator('#item-projet input').fill(name);
   await page.locator('#item-adresse input').fill('12 rue des Lilas 00000 VILLE-TEST');
   await page.getByRole('button', { name: 'Créer et commencer la visite' }).click();

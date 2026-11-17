@@ -526,6 +526,10 @@ Ordre de grandeur : 120 photos ≈ 60 Mo par dossier.
 | 5b | Repère « À sonder » · liste des sondages · numéros des photos dans l'ordre du rapport | Item « à sonder » retrouvé dans la mise à jour, puis levé ; numéros recalculés après déplacement d'une fiche |
 | 5c | Plusieurs observations par item · localisation des photos sur le plan de référence de la fiche | Item à deux observations (désordre sur la seconde) ; photo d'une pièce située sur le plan de son niveau |
 
+| 6a | Refonte UX 3DE — socle : polices et icônes embarquées, jetons et classes du design system, 4 couleurs d'urgence, accueil, fiche dossier, rapport, réglages | Accueil, dossier et rapport aux couleurs 3DE en mode avion ; plus aucun emoji ; fiche de saisie inchangée mais habillée |
+| 6b | Refonte UX 3DE — visite en liste + détail : barre unique, plan de visite, liste des questions, une question à la fois, barre d'actions, portrait | Fiche Couverture saisie entièrement en paysage puis en portrait, en mode avion, sans perte de fonction |
+| 6c | Refonte UX 3DE — annotateur, « Situer » en deux étapes, synthèse en liste + détail, plans, photos, conclusion | Photo annotée avec la nouvelle barre d'outils ; photo située sur le plan ; « Voir » de la synthèse ouvre la question |
+
 ### 9.1 Lot 5b — détail
 
 **Repère « À sonder »** (réponse du 07/11/2026 : « simple repère sur l'observation »)
@@ -589,6 +593,156 @@ Ordre de grandeur : 120 photos ≈ 60 Mo par dossier.
   4. au relâcher, la pastille reliée à la photo (`photoId`, numéro courant) remplace une localisation précédente, et l'on revient à l'item.
 - Vignette d'une photo située : repère 📍.
 - Rendu : pastille et flèche de direction de la couleur choisie, à l'écran, sur les vignettes et dans le rapport.
+
+### 9.3 Lot 6 — refonte UX aux couleurs de 3DE
+
+Source : livrable Claude Design du 17/11/2026 (dossier `UX/` hors dépôt), direction D « Atelier ».
+- `diag-bati-3de-ds/` : design system, avec `styles.scss`, polices, sprite d'icônes et monogrammes.
+- `diag-bati-3de-ecrans.html` : les écrans refondus.
+
+Principes communs aux trois lots :
+- **Aucune fonction retirée.** Le modèle de données, les modèles de fiches et le rapport ne changent pas.
+- **Le rouge est réservé aux désordres.** Une réponse choisie est toujours vert foncé, même « Mauvais » (`.choice.warn` n'est plus rouge).
+  Une action destructive (`.btn-danger`) est anthracite.
+- **Quatre urgences distinctes**, chacune avec sa couleur, une jauge à 4 barres et un libellé, jamais par la couleur seule :
+  - Immédiat `#a4000f` ;
+  - Court terme `#8a3200` ;
+  - Moyen terme `#6b4e00` ;
+  - À surveiller `#3b434a`.
+- **États métier :**
+  - À sonder : `#1b4a85` ;
+  - Modifié : `#7030a0`, inchangé ;
+  - Enregistré : `.save-state`, toujours visible.
+- **Contraste et tactile.** Texte ≥ 17 px, AA au minimum (AAA pour le texte courant), cibles ≥ 48 px et 56 px dans la barre d'actions.
+  Un bouton désactivé reste lisible, sans opacité.
+- **Hors ligne :**
+  - Raleway (500–700) et Open Sans (400–700), en `.woff2` latin (OFL), sont livrées dans `public/fonts/` ;
+  - URL relatives, à cause de la base `/diag-bati/`.
+
+#### Lot 6a — socle visuel et pages hors visite
+
+- **Styles.** `src/styles.scss` est remplacé par celui du design system.
+  - Les noms de jetons et de classes existants sont conservés, avec de nouvelles valeurs. Les styles de composants qui les utilisent suivent donc sans modification.
+  - Les rouges, bleus et emoji codés en dur dans les composants sont repris un à un.
+- **Icônes.**
+  - Composant `<app-icon name="camera" />`, qui dessine le tracé SVG en ligne, sans `<use href="#…">`. Raison : avec `<base href="/diag-bati/">`, Safari résout mal les références `#id`.
+  - Les 52 icônes du sprite sont reprises dans `shared/ui/icons.ts`. Un test vérifie que chaque nom utilisé existe.
+  - Plus aucun emoji d'interface : 📷 🖼 📍 🔍 ⚠ ☝ ✕ ⇪ ⇩ ⚙ deviennent des icônes. Un bouton qui n'a qu'une icône porte un `aria-label`.
+- **Urgences.** Composant `<app-urgency [level] [solid]>`, avec la pastille `.urg--1…4` et sa jauge.
+  Il est utilisé dans la fiche (badge de désordre, choix de l'urgence) et dans la synthèse.
+- **Logo** (décision du 17/11/2026 : publié dans le dépôt).
+  - Le monogramme 3DE (blanc, et anthracite) et le logo complet blanc sont livrés dans `public/brand/`.
+  - C'est une exception à la règle « logo jamais dans le dépôt » : le logo du rapport reste importé dans les Réglages.
+- **Barre d'app** (`.appbar`, anthracite) :
+  - contenu : monogramme 3DE, « Diag bâti », Réglages ;
+  - en visite, elle reste au-dessus de la barre de visite jusqu'au lot 6b, qui fusionne les deux.
+- **Accessibilité des libellés** : les noms accessibles ne contiennent plus de symbole (« À sonder », « Situer la photo 1 », « Générer le PDF », « Fiches »).
+- **Accueil :**
+  - onglets `.tabs` ;
+  - chaque dossier est une carte avec :
+    - avancement (réponses / total, jauge) ;
+    - désordres par urgence et nombre d'items à sonder ;
+    - état d'export et date de dernière modification ;
+    - actions « Reprendre la visite » (dernière visite), « Dossier » et « Exporter » ;
+  - barre d'état en bas : « Prête hors ligne », stockage, avertissement de stockage non persistant ;
+  - les chiffres de chaque carte viennent de `visitOverview(template, visit, answers)`, une fonction pure. Elle renvoie :
+    - les réponses et le total ;
+    - les désordres par urgence ;
+    - les sondages en attente ;
+    - les items modifiés dans la mise à jour.
+  - « Supprimer » reste sur la carte, en bouton icône discret.
+- **Fiche dossier** sur deux colonnes :
+  - à gauche, les visites et leurs actions ;
+  - à droite, les informations du projet regroupées en cartes Projet / Bâtiment / Client ;
+  - « Nouvelle mise à jour » désactivée garde son explication juste en dessous.
+- **Rapport.** Les contrôles avant génération forment une liste d'état (`.check-list`), avec un lien « Réglages » sur chaque point en avertissement. Les deux boutons de génération sont grands.
+- **Réglages, nouveau dossier, boîtes de dialogue :** mêmes cartes, mêmes titres en capitales (`.section-title`), et dialogue `.dialog`.
+- **Fiche de saisie, annotateur, synthèse :** seulement habillés (nouveaux jetons, icônes, urgences). Leur structure change aux lots 6b et 6c.
+
+#### Lot 6b — visite en liste + détail
+
+- **Barre de visite unique** (`.appbar`), qui remplace l'en-tête de l'app et la barre de visite. Elle contient :
+  - le monogramme ;
+  - le **sélecteur de fiche** (« Couverture · Bâtiment 1 », avec le compteur 5/19), qui ouvre le plan de visite ;
+  - le projet et la visite ;
+  - les outils Plans, Photos, Conclusion, Synthèse, Rapport ;
+  - l'état d'enregistrement ;
+  - un menu « … » : Réglages, Dossier, Renommer / Dupliquer / Supprimer la fiche.
+- **Plan de visite** (remplace le menu latéral), en surimpression.
+  - Il est organisé en trois colonnes :
+    - les fiches uniques ;
+    - les fiches répétables, avec « + Bâtiment » sur l'en-tête de section ;
+    - les outils, sur fond anthracite.
+  - Chaque fiche a un anneau de progression, un compteur et le nombre de désordres.
+  - Les filtres « Modifiés seulement » et « À sonder seulement » y figurent.
+- **Liste des questions** (colonne de 400 px).
+  - Chaque ligne affiche :
+    - la question ;
+    - la réponse résumée (« Mauvais · 2 observations ») ou « Non renseigné » ;
+    - les compteurs de désordres et de sondages ;
+    - jusqu'à 3 vignettes ;
+    - le repère violet si l'item est modifié ;
+    - l'astérisque si l'item est obligatoire.
+  - Les rubriques (`heading`) deviennent des intertitres de la liste.
+  - En pied de liste :
+    - **Synthèse de la fiche**, qui regroupe les rubriques de pied (commentaires, préconisations, sécurité, entretien) dans un même panneau ;
+    - fiche précédente / suivante.
+  - Avec un filtre actif, la tête de liste l'indique (« Modifiés · 3 sur 19 ») et propose « Tout ».
+- **Panneau de détail** : une question à la fois.
+  - En-tête : « Question 5 sur 19 », le titre, l'aide (ⓘ), et les flèches question précédente / suivante.
+  - Puis la réponse en grands choix (`.choice-lg`, 56 px).
+  - Puis les photos, numérotées avec les repères « annotée » et « située ». Toucher une vignette la sélectionne ; la toucher à nouveau l'ouvre.
+  - Puis les observations (`.obs`).
+    - Chacune montre ses repères (urgence, À sonder) et ses termes du lexique, qu'un toucher marque ou démarque.
+    - Une observation est toujours sélectionnée (la première par défaut, ou celle qui a le focus).
+    - Les phrases types s'affichent en puces `.chip-suggest` sous l'observation sélectionnée.
+    - « Retirer » apparaît dans l'en-tête d'une observation sélectionnée à partir de la deuxième.
+  - Dans une mise à jour :
+    - bandeau violet « Modifié », avec « Voir / Masquer l'original » et « Annuler la modification » ;
+    - la réponse d'origine est cerclée en pointillé violet (`.was-chosen`).
+- **Barre d'actions**, en bas du panneau, sous le pouce. Elle agit sur l'observation sélectionnée :
+  - Photo (appareil) et photothèque ;
+  - Désordre, ou l'urgence en cours : le choix de l'urgence (`.urg-picker`) s'ouvre en surimpression au-dessus du bouton, avec les définitions et « Retirer » ;
+  - À sonder ;
+  - + Observation ;
+  - « Situer photo n », actif quand une vignette est sélectionnée, sinon sur la dernière photo non située.
+
+  Une action sans objet est désactivée et reste lisible.
+- **Adresse de la question.** La question ouverte est dans l'adresse (`?q=<itemId>`).
+  Le retour de « Situer », les liens de la synthèse et le rechargement rouvrent la même question.
+- **Plan de référence de la fiche :** son sélecteur est en tête de la liste quand il faut choisir, et dans le menu « … » sinon.
+- **Portrait** (`@media (orientation: portrait)`) :
+  - le panneau prend toute la largeur ;
+  - « Questions 5/19 » ouvre la liste en tiroir ;
+  - la question précédente / suivante devient de grands boutons nommés, en bas de l'écran ;
+  - les outils passent par « … » et par le plan de visite.
+- **Conditions de visite et Conclusion :** ces pages restent des formulaires d'une page, dans la nouvelle barre.
+- **Tests E2E :**
+  - nouvelle aide `openItem(page, itemId)` ;
+  - les scénarios existants sont réécrits sans changer ce qu'ils vérifient ;
+  - test portrait (tiroir des questions, choix de l'urgence).
+
+#### Lot 6c — annotateur, synthèse, médias
+
+- **Annotateur** (toujours sombre) :
+  - outils libellés et groupés par famille (sélection · tracés · formes · libre / hachures / texte · pastille / tampon) ;
+  - outil actif en vert clair 3DE ;
+  - Annuler / Rétablir à droite ;
+  - couleurs en 48 px, avec la légende nommée à côté (« Rouge = Désordres ») ;
+  - zone de réglages de l'outil actif (`.tool-ctx`) ;
+  - zoom en surimpression ;
+  - état d'enregistrement visible ;
+  - « Supprimer » dans « … ».
+- **« Situer »** : bandeau vert foncé en deux étapes numérotées (toucher l'endroit, puis glisser).
+  - La vignette de la photo à situer reste visible, et le cône de vue se dessine en direct.
+  - Le geste ne change pas, et l'emplacement est enregistré au lever du doigt.
+  - Changement par rapport au lot 5c : au lieu de revenir aussitôt à la question, le bandeau propose « Recommencer » et « Terminé ».
+- **Synthèse et clôture** en liste + détail :
+  - à gauche, les rubriques avec leur compte : Désordres, Sondages, Sécurité, Travaux, Réponses obligatoires ;
+  - à droite, le détail, avec les désordres groupés par urgence ;
+  - chaque ligne a un lien « Voir » vers sa question ;
+  - « Clôturer la visite » est en bas à gauche, avec son effet expliqué.
+- **Plans et croquis, Photos, Conclusion :** cartes, bandes de vignettes `.thumbs` et barre de visite communes.
 
 ```
 src/app/
