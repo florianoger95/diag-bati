@@ -26,6 +26,7 @@ test('mode avion : création, saisie, désordre, ajout de bâtiment et clôture'
 
   await openSheet(page, 'Synthèse et clôture');
   await expect(page.getByText('Bâtiment 1 — État des tuiles')).toBeVisible();
+  await page.getByRole('navigation', { name: 'Rubriques de la synthèse' }).getByRole('link', { name: /^Travaux et échéances/ }).click();
   await expect(page.getByText('Démousser la couverture')).toBeVisible();
   await page.getByRole('button', { name: 'Clôturer la visite' }).click();
   await expect(page.getByRole('button', { name: 'Rouvrir la visite' })).toBeVisible();

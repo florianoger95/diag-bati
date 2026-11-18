@@ -45,6 +45,8 @@ export async function addInstance(page: Page, button: string, label: string): Pr
 /** Liste des questions de la fiche ; en portrait, elle s'ouvre en tiroir. */
 export async function showQuestions(page: Page): Promise<Locator> {
   const list = page.getByRole('navigation', { name: 'Questions de la fiche' });
+  // la liste existe dès que la fiche est rendue (masquée en portrait tant que le tiroir est fermé)
+  await page.locator('nav.qlist').waitFor({ state: 'attached' });
   if (!(await list.isVisible())) await page.getByRole('button', { name: /^Questions/ }).click();
   await expect(list).toBeVisible();
   return list;

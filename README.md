@@ -13,6 +13,7 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
 - **Lot 5c** : plusieurs observations par item, photos situées sur le plan de référence de la fiche.
 - **Lot 6a** : charte 3DE (couleurs, polices, monogramme, pictogrammes), accueil en cartes de dossier.
 - **Lot 6b** : visite en liste de questions + détail d'une question, barre d'actions, plan de visite, mode portrait.
+- **Lot 6c** : annotateur aux outils libellés, « Situer » en deux étapes, synthèse en liste + détail, pages Photos / Plans / Conclusion en cartes.
 
 ## Charte 3DE (lot 6a)
 
@@ -52,10 +53,17 @@ Spécification complète : [docs/SPEC.md](docs/SPEC.md).
   - Pièces : le plan du niveau, à **choisir en tête de la liste des questions** s'il y en a plusieurs.
 - Après une photo, le bouton **Situer photo n** de la barre d'actions ouvre le plan. Dans l'annotateur d'une photo, c'est « Situer sur le plan ».
   1. Touchez l'endroit de la prise de vue.
-  2. Glissez vers ce que la photo montre.
-  3. Une pastille fléchée au numéro de la photo est posée sur le plan, et l'on revient à l'item.
+  2. Glissez vers ce que la photo montre. La vignette de la photo reste visible en bas à gauche.
+  3. Au lever du doigt, une pastille fléchée au numéro de la photo est enregistrée sur le plan.
+     Vérifiez, puis touchez **Terminé** pour revenir à la question. **Recommencer** retire la pastille posée ; **Annuler** laisse le plan tel quel.
 - Situer à nouveau une photo déplace sa pastille. Une photo située porte un repère d'épingle sur sa vignette.
 - Les dossiers créés avant ce lot utilisent les plans de référence du modèle livré.
+
+## Synthèse et clôture (lot 6c)
+
+- À gauche, les rubriques avec leur compte : Désordres, Sondages à réaliser, Mesures de sécurité, Travaux et échéances, Entretien, Réponses obligatoires.
+- À droite, le détail de la rubrique choisie (`?r=…`). Les désordres sont groupés par urgence, avec la jauge et la couleur de chaque niveau.
+- Chaque ligne mène à sa question (« Voir »). « Clôturer la visite » est en bas à gauche.
 
 ## Repère « À sonder »
 
@@ -122,9 +130,12 @@ Ouvrir l'app connecté jusqu'à voir **« Prête hors ligne »** en bas de l'acc
   « Image du plan », « Photo d'un plan » papier, « Croquis » sur fond blanc. La page de PDF est aussi gardée en vectoriel pour le rapport.
 - **Annotation** : touchez une vignette.
   - Un doigt dessine, deux doigts zooment et déplacent ; les boutons zoomer / dézoomer / Ajuster permettent aussi de zoomer.
-  - Outils : flèche, trait droit, rectangle, ellipse, trait libre, zone (touchez les angles, puis « Terminer la zone »), texte,
-    pastille (1-2-3 ou A-B-C, ou numéro d'une autre photo), tampon (« À SONDER », « TÉMOIN », « VOIR PHOTO »).
-  - Annuler / rétablir. L'outil « Sélectionner / déplacer » sélectionne une forme pour la déplacer, la dupliquer, la recolorer ou la supprimer.
+  - Outils libellés, par famille : Sélection · Formes (flèche, trait, rectangle, ellipse) · Tracés (libre, zone, texte) · Repères (pastille, tampon).
+    Zone : touchez les angles, puis « Terminer la zone ». Pastille : 1-2-3, A-B-C ou numéro d'une autre photo. Tampon : « À SONDER », « TÉMOIN », « VOIR PHOTO ».
+  - Les réglages de l'outil actif (épaisseur, taille, remplissage, mode de pastille) sont en bas à droite.
+  - Couleurs nommées ; le bouton à côté rappelle la légende de la couleur courante (« Rouge = … ») et permet de la renommer.
+  - Annuler / Rétablir à droite des outils. « Sélection » prend une forme pour la déplacer, la dupliquer, la recolorer ou la supprimer.
+  - L'état d'enregistrement est affiché en haut ; « Supprimer la photo » est dans le menu « … ».
   - **Pivoter et recadrer un plan** : à l'import, tant qu'il n'est pas annoté (« Pivoter à gauche », « Pivoter à droite », « Recadrer » au-dessus des outils).
     L'image et la page PDF vectorielle sont transformées ensemble.
   - Les vignettes des fiches montrent les annotations (croquis compris).

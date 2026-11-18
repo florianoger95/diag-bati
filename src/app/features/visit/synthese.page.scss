@@ -1,9 +1,28 @@
-.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.entry {
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-  min-height: var(--target); padding: 8px 12px; border-radius: var(--radius);
-  background: var(--surface); color: var(--text); text-decoration: none;
-  border-left: 4px solid transparent;
+/* Synthèse et clôture en liste + détail (même gabarit que la fiche) */
+:host { flex: 1 1 0; min-height: 0; display: flex; }
+
+.rubriques { width: 360px; }
+.q-row { text-decoration: none; color: var(--text); }
+.q-row .i { color: var(--muted); flex: none; }
+.q-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.q-answer.is-warn { color: var(--warn); }
+
+.closing { padding: 12px; gap: 8px; }
+.closing .btn { min-height: 56px; }
+.closing .hint { margin: 0 4px; }
+
+.legend { margin: -6px 0 0; max-width: 720px; }
+.grp { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.syn-item {
+  display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 14px;
+  border: 1px solid var(--border-soft); border-radius: var(--radius); background: #fff;
+  color: var(--text); text-decoration: none;
 }
-.entry-obs { flex-basis: 100%; color: var(--muted); font-size: var(--fs-sm); }
-.closing { margin-top: 8px; }
+.syn-item .t { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.syn-item .t span { color: var(--muted); }
+.voir { display: inline-flex; align-items: center; gap: 4px; flex: none; color: var(--primary); font-weight: 700; }
+
+@media (orientation: portrait), (max-width: 1000px) {
+  .rubriques { width: 300px; }
+  .detail-body { padding: 16px; }
+}

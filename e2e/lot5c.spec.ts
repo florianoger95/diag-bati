@@ -69,9 +69,10 @@ test('mode avion : photo d’une pièce située sur le plan de son niveau', asyn
   await select.selectOption({ label: await select.locator('option').nth(2).innerText() });
   await situer.click();
 
-  await expect(page.getByText(/Photo 1 : touchez l'endroit de la prise de vue/)).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Situer la photo 1' }).getByText('Touchez l’endroit de la prise de vue')).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Annotation 2' })).toBeVisible(); // plan du R+1
   await drag(page, [0.4, 0.5], [0.7, 0.5]);
+  await page.getByRole('button', { name: 'Terminé' }).click();
 
   // retour à la pièce : photo marquée située, plus de bouton
   await expect(page.getByRole('heading', { level: 1, name: 'Pièce 1' })).toBeVisible();

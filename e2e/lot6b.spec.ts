@@ -129,5 +129,5 @@ test('portrait : liste en tiroir, choix de l’urgence au-dessus de la barre, qu
   // les outils passent par « … »
   await expect(page.getByRole('link', { name: 'Synthèse', exact: true })).toBeHidden();
   await sheetMenu(page, 'Synthèse et clôture');
-  await expect(page.getByRole('heading', { name: /Synthèse/ }).first()).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Rubriques de la synthèse' })).toBeVisible();
 });

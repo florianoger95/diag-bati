@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { URGENCIES, URGENCY_LABELS, URGENCY_LEGEND, Urgency } from '../../core/model/data';
 import { DialogService } from '../../core/services/dialog.service';
 import { ActionRef, collectActions, collectDefects, collectProbes, missingRequired } from '../../core/templates/template-engine';
@@ -7,7 +8,11 @@ import { IconComponent } from '../../shared/ui/icon.component';
 import { UrgencyComponent } from '../../shared/ui/urgency.component';
 import { VisitStore } from './visit-store';
 
-/** Synthèse avant clôture : désordres, mesures de sécurité, récapitulatif des travaux, oublis. */
+export type RubricId = 'desordres' | 'sondages' | 'securite' | 'travaux' | 'entretien' | 'manquants';
+
+interface Rubric { id: RubricId; title: string; summary: string; empty?: boolean; warn?: boolean }
+
+/** Synthèse avant clôture, en liste + détail : rubriques à gauche (`?r=`), détail à droite. */
 @Component({
   selector: 'app-synthese-page',
   imports: [RouterLink, IconComponent, UrgencyComponent],
@@ -20,6 +25,8 @@ export class SynthesePage {
   private readonly dialogs = inject(DialogService);
   readonly labels = URGENCY_LABELS;
   readonly urgencyLegend = URGENCY_LEGEND;
+
+  private readonly params = toSignal(inject(ActivatedRoute).queryParamMap);
 
   private readonly answers = computed(() => [...this.store.answers().values()]);
 
@@ -61,6 +68,46 @@ export class SynthesePage {
     return URGENCIES
       .map((u) => ({ urgency: u as Urgency, items: all.filter((a) => a.urgency === u) }))
       .filter((g) => g.items.length);
+  });
+
+  readonly worksCount = computed(() => this.works().reduce((n, g) => n + g.items.length, 0));
+
+  /** Désordres groupés par urgence : les quatre niveaux, même vides. */
+  readonly defectGroups = computed(() => {
+    const all = this.defects();
+    return URGENCIES.map((u) => ({ urgency: u as Urgency, items: all.filter((d) => d.urgency === u) }));
+  });
+
+  readonly rubrics = computed<Rubric[]>(() => {
+    const defects = this.defects().length;
+    const parts = this.defectGroups().filter((g) => g.items.length)
+      .map((g) => `${g.items.length} ${this.labels[g.urgency].toLowerCase()}`).join(', ');
+    const probes = this.probes();
+    const done = probes.length - this.probesLeft();
+    const safety = this.safety().length;
+    const works = this.worksCount();
+    const missing = this.missing().length;
+    const list: Rubric[] = [
+      { id: 'desordres', title: 'Désordres', summary: defects ? `${defects} · ${parts}` : 'Aucun', empty: !defects },
+    ];
+    if (probes.length) {
+      list.push({ id: 'sondages', title: 'Sondages à réaliser',
+        summary: `${this.probesLeft()}${done ? ` · ${done} levé${done > 1 ? 's' : ''}` : ''}` });
+    }
+    list.push(
+      { id: 'securite', title: 'Mesures de sécurité à court terme', summary: safety ? String(safety) : 'Aucune', empty: !safety },
+      { id: 'travaux', title: 'Travaux et échéances', summary: works ? `${works} préconisation${works > 1 ? 's' : ''}` : 'Aucune préconisation', empty: !works },
+    );
+    if (this.maintenance().length) list.push({ id: 'entretien', title: "Mesures d'entretien", summary: String(this.maintenance().length) });
+    list.push({ id: 'manquants', title: 'Réponses obligatoires',
+      summary: missing ? `${missing} manquante${missing > 1 ? 's' : ''}` : 'Tout est renseigné', warn: missing > 0 });
+    return list;
+  });
+
+  /** Rubrique ouverte : `?r=`, sinon les désordres. */
+  readonly current = computed<RubricId>(() => {
+    const r = this.params()?.get('r');
+    return this.rubrics().some((x) => x.id === r) ? (r as RubricId) : 'desordres';
   });
 
   readonly base = computed(() => {

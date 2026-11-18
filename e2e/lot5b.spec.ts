@@ -44,6 +44,7 @@ test('mode avion : numéros des photos dans l’ordre du rapport, repère « À 
   await expect(list.locator('[data-q="couv-type"]')).toHaveCount(1);
 
   await openSheet(page, 'Synthèse et clôture');
+  await page.getByRole('navigation', { name: 'Rubriques de la synthèse' }).getByRole('link', { name: /^Sondages à réaliser/ }).click();
   const sondages = page.getByRole('region', { name: /Sondages à réaliser/ });
   await expect(sondages.getByText('Bâtiment B — État des tuiles')).toBeVisible();
 
@@ -77,5 +78,6 @@ test('mode avion : numéros des photos dans l’ordre du rapport, repère « À 
   await list.getByRole('button', { name: 'Tout' }).click();
 
   await openSheet(page, 'Synthèse et clôture');
+  await page.getByRole('navigation', { name: 'Rubriques de la synthèse' }).getByRole('link', { name: /^Sondages à réaliser/ }).click();
   await expect(page.getByRole('region', { name: /Sondages à réaliser/ }).getByText('Levé')).toBeVisible();
 });

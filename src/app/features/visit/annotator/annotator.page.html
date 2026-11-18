@@ -1,26 +1,62 @@
 @if (photo(); as p) {
-  <div class="annotator" role="dialog" aria-modal="true" [attr.aria-label]="'Annotation ' + number()">
-    <header class="bar">
-      <button class="btn btn-small" type="button" (click)="close()"><app-icon name="left" />Retour</button>
+  <div class="annotator annot" role="dialog" aria-modal="true" [attr.aria-label]="'Annotation ' + number()">
+    <header class="annot-top">
+      <button class="btn btn-on-dark" type="button" (click)="locating() ? cancelLocate() : close()"><app-icon name="left" />Retour</button>
       <div class="title">
-        <strong>{{ p.kind === 'photo' ? 'Photo' : p.kind === 'plan' ? 'Plan' : 'Croquis' }} {{ number() }}</strong>
+        <strong>{{ kindLabel(p.kind) }} {{ number() }}</strong>
         <span class="where">{{ location() }}</span>
       </div>
-      <input class="input caption" type="text" placeholder="Légende de l'image…" [value]="caption()"
-             [readOnly]="readonly()" (input)="onCaption($any($event.target).value)" aria-label="Légende de l'image" />
-      @if (canLocate()) {
-        <button class="btn btn-small" type="button" (click)="locateOnPlan()"><app-icon name="pin" />Situer sur le plan</button>
+      @if (locating()) {
+        <span class="spacer"></span>
+      } @else {
+        <input class="input caption" type="text" placeholder="Légende de l'image…" [value]="caption()"
+               [readOnly]="readonly()" (input)="onCaption($any($event.target).value)" aria-label="Légende de l'image" />
       }
+      @if (canLocate()) {
+        <button class="btn btn-on-dark" type="button" (click)="locateOnPlan()"><app-icon name="pin" />Situer sur le plan</button>
+      }
+      <span class="save" role="status" aria-live="polite">
+        @if (store.saveError()) {
+          <span class="save-state is-error"><app-icon name="error" size="sm" />Non enregistré</span>
+        } @else if (store.pendingWrites() > 0) {
+          <span class="save-state is-busy"><app-icon name="sync" size="sm" />Enregistrement…</span>
+        } @else {
+          <span class="save-state is-saved"><app-icon name="check" size="sm" />Enregistré</span>
+        }
+      </span>
       @if (!readonly() && !locating()) {
-        <button class="btn btn-small btn-danger" type="button" (click)="remove()"><app-icon name="trash" />Supprimer</button>
+        <div class="menu-wrap">
+          <button class="btn btn-on-dark btn-icon" type="button" aria-label="Plus d’actions" aria-haspopup="menu"
+                  [attr.aria-expanded]="menuOpen()" (click)="menuOpen.set(!menuOpen())"><app-icon name="more" /></button>
+          @if (menuOpen()) {
+            <div class="menu" role="menu" aria-label="Plus d’actions">
+              <button role="menuitem" type="button" class="danger" (click)="menuOpen.set(false); remove()">
+                <app-icon name="trash" />Supprimer {{ p.kind === 'photo' ? 'la photo' : p.kind === 'plan' ? 'le plan' : 'le croquis' }}
+              </button>
+            </div>
+          }
+        </div>
       }
     </header>
+    @if (menuOpen()) { <div class="menu-scrim" (click)="menuOpen.set(false)"></div> }
 
-    @if (locating()) {
-      <div class="situer-banner" role="status">
-        <span class="situer-text"><app-icon name="pin" /><span><strong>Photo {{ locatingNumber() }}</strong> : touchez l'endroit de la prise de vue, puis glissez vers ce qu'elle montre.</span></span>
+    @if (locating(); as target) {
+      <div class="situer-banner" role="status" [attr.aria-label]="'Situer la photo ' + locatingNumber()">
+        <span class="situer-title">Situer la photo {{ locatingNumber() }}</span>
+        @if (locatePhase() === 'done') {
+          <span class="situer-step is-done" aria-hidden="true"><app-icon name="check" size="sm" /></span>
+          <strong>Photo {{ locatingNumber() }} située</strong>
+          <span class="situer-note">Glissez à nouveau pour corriger, ou recommencez.</span>
+        } @else {
+          <span class="situer-step" [class.is-done]="locatePhase() === 'aim'" aria-hidden="true">
+            @if (locatePhase() === 'aim') { <app-icon name="check" size="sm" /> } @else { 1 }
+          </span>
+          <span [class.situer-current]="locatePhase() === 'place'">Touchez l’endroit de la prise de vue</span>
+          <span class="situer-step" aria-hidden="true">2</span>
+          <span [class.situer-current]="locatePhase() === 'aim'">Glissez vers ce que la photo montre</span>
+        }
         <span class="spacer"></span>
-        <button class="btn btn-small" type="button" (click)="finishLocate()">Annuler</button>
+        <button class="btn btn-on-dark" type="button" (click)="cancelLocate()">Annuler</button>
       </div>
     }
 
@@ -32,19 +68,24 @@
                 [attr.aria-label]="'Annotations : ' + shapes().length"></canvas>
       </div>
       <div class="zoom">
-        <button class="btn btn-small" type="button" (click)="zoom(1.5)" aria-label="Zoomer"><app-icon name="zoom-in" /></button>
-        <button class="btn btn-small" type="button" (click)="zoom(1 / 1.5)" aria-label="Dézoomer"><app-icon name="zoom-out" /></button>
-        <button class="btn btn-small" type="button" (click)="fit()"><app-icon name="fit" />Ajuster</button>
+        <button class="btn btn-icon" type="button" (click)="zoom(1.5)" aria-label="Zoomer"><app-icon name="zoom-in" /></button>
+        <button class="btn btn-icon" type="button" (click)="zoom(1 / 1.5)" aria-label="Dézoomer"><app-icon name="zoom-out" /></button>
+        <button class="btn" type="button" (click)="fit()"><app-icon name="fit" />Ajuster</button>
       </div>
+      @if (locating(); as target) {
+        @let view = store.toView(target);
+        <figure class="locate-thumb" [attr.aria-label]="'Photo ' + locatingNumber() + ' · ' + store.photoLocation(target)">
+          @if (view.url) { <img [src]="view.url" alt="" /> }
+          <figcaption>Photo {{ locatingNumber() }} · {{ store.photoLocation(target) }}</figcaption>
+        </figure>
+      } @else if (usedLegend().length) {
+        <div class="legend" aria-label="Légende">
+          @for (l of usedLegend(); track l.color) {
+            <span class="legend-entry"><span class="legend-dot" [style.background]="l.color"></span>{{ l.label }}</span>
+          }
+        </div>
+      }
     </div>
-
-    @if (usedLegend().length) {
-      <div class="legend" aria-label="Légende">
-        @for (l of usedLegend(); track l.color) {
-          <span class="legend-entry"><span class="swatch" [style.background]="l.color"></span>{{ l.label }}</span>
-        }
-      </div>
-    }
 
     @if (canAdjust() && !locating()) {
       <div class="adjust" role="group" aria-label="Ajuster le plan">
@@ -62,39 +103,61 @@
       </div>
     }
 
-    @if (!readonly() && !locating()) {
-      <footer class="toolbar">
-        <div class="group" role="toolbar" aria-label="Outils">
-          @for (t of tools; track t.id) {
-            <button class="tool" type="button" [attr.aria-pressed]="tool() === t.id" [attr.aria-label]="t.label"
-                    [title]="t.label" (click)="setTool(t.id)"><app-icon [name]="t.icon" /></button>
+    @if (locating()) {
+      <footer class="annot-bar locate-bar">
+        <span class="light locate-hint">L’emplacement est enregistré dès que le doigt se lève. Les outils de dessin sont masqués pendant le placement.</span>
+        <button class="btn btn-on-dark" type="button" [disabled]="locatePhase() !== 'done'" (click)="restartLocate()"><app-icon name="revert" />Recommencer</button>
+        <button class="btn btn-primary" type="button" [disabled]="locatePhase() !== 'done'" (click)="finishLocate()"><app-icon name="check" />Terminé</button>
+      </footer>
+    } @else if (!readonly()) {
+      <footer class="annot-bar">
+        <div class="tools" role="toolbar" aria-label="Outils">
+          @for (g of toolGroups; track g.name) {
+            <div class="tool-group" role="group" [attr.aria-label]="g.name">
+              @for (t of g.tools; track t.id) {
+                <button class="tool-btn" type="button" [attr.aria-pressed]="tool() === t.id" [attr.aria-label]="t.label"
+                        (click)="setTool(t.id)"><app-icon [name]="t.icon" />{{ t.short }}</button>
+              }
+            </div>
           }
         </div>
+        <span class="spacer"></span>
+        <div class="tool-group" role="group" aria-label="Historique">
+          <button class="tool-btn" type="button" [disabled]="!canUndo()" (click)="undo()" aria-label="Annuler"><app-icon name="undo" />Annuler</button>
+          <button class="tool-btn" type="button" [disabled]="!canRedo()" (click)="redo()" aria-label="Rétablir"><app-icon name="redo" />Rétablir</button>
+        </div>
+        <span class="row-break"></span>
 
-        <div class="group" role="group" aria-label="Couleur">
+        <div class="colors" role="group" aria-label="Couleur">
           @for (c of palette(); track c) {
-            <button class="swatch-btn" type="button" [style.background]="c" [attr.aria-pressed]="color() === c"
-                    [attr.aria-label]="legendLabel()(c) ?? 'Couleur ' + c" [title]="legendLabel()(c) ?? c"
-                    (click)="pickColor(c)"></button>
+            <button class="swatch" type="button" [style.background]="c" [attr.aria-pressed]="color() === c"
+                    [attr.aria-label]="swatchLabel(c)" (click)="pickColor(c)"></button>
           }
-          <label class="custom" title="Autre couleur">
-            <input type="color" [value]="color()" (change)="pickColor($any($event.target).value)" aria-label="Choisir une autre couleur" />
+          <label class="swatch custom">
+            <app-icon name="palette" />
+            <input type="color" [value]="color()" (change)="pickColor($any($event.target).value)" aria-label="Autre couleur" />
           </label>
-          <button class="btn btn-small btn-ghost" type="button" (click)="renameColor()">
-            {{ legendLabel()(color()) ?? 'Nommer la couleur' }}
+          <button class="legend-chip" type="button" (click)="renameColor()" [attr.aria-label]="chipLabel()">
+            <i [style.background]="color()"></i>{{ legendLabel()(color()) ? colorName(color()) + ' = ' + legendLabel()(color()) : 'Nommer la couleur' }}
           </button>
         </div>
+        <span class="spacer"></span>
 
-        <div class="group">
+        <div class="tool-ctx" role="group" aria-label="Réglages de l’outil">
           @switch (tool()) {
             @case ('text') {
-              @for (s of textSizes; track s[0]) {
-                <button class="choice" type="button" [attr.aria-pressed]="textSize() === s[1]" (click)="textSize.set(s[1])">{{ s[0] }}</button>
-              }
+              <span>Taille</span>
+              <div class="seg-dark">
+                @for (s of textSizes; track s[0]) {
+                  <button type="button" [attr.aria-pressed]="textSize() === s[1]" (click)="textSize.set(s[1])">{{ sizeLabels[s[0]] }}</button>
+                }
+              </div>
             }
             @case ('badge') {
-              <button class="choice" type="button" [attr.aria-pressed]="badgeMode() === 'number'" (click)="badgeMode.set('number')">1-2-3</button>
-              <button class="choice" type="button" [attr.aria-pressed]="badgeMode() === 'letter'" (click)="badgeMode.set('letter')">A-B-C</button>
+              <div class="seg-dark">
+                <button type="button" [attr.aria-pressed]="badgeMode() === 'number'" (click)="badgeMode.set('number')">1-2-3</button>
+                <button type="button" [attr.aria-pressed]="badgeMode() === 'letter'" (click)="badgeMode.set('letter')">A-B-C</button>
+              </div>
               <select class="input badge-select" [value]="badgeTarget()" (change)="badgeTarget.set($any($event.target).value)"
                       aria-label="Numéro de la pastille">
                 <option value="auto">Suivant ({{ nextBadge() }})</option>
@@ -102,45 +165,53 @@
                   <option [value]="o.id">Photo {{ o.number }}{{ o.caption ? ' — ' + o.caption : '' }}</option>
                 }
               </select>
-              @for (s of textSizes; track s[0]) {
-                <button class="choice" type="button" [attr.aria-pressed]="textSize() === s[1]" (click)="textSize.set(s[1])">{{ s[0] }}</button>
-              }
+              <div class="seg-dark">
+                @for (s of textSizes; track s[0]) {
+                  <button type="button" [attr.aria-pressed]="textSize() === s[1]" (click)="textSize.set(s[1])">{{ sizeLabels[s[0]] }}</button>
+                }
+              </div>
             }
             @case ('zone') {
-              <button class="choice" type="button" [attr.aria-pressed]="zoneFill() === 'hatch'" (click)="zoneFill.set('hatch')">Hachurée</button>
-              <button class="choice" type="button" [attr.aria-pressed]="zoneFill() === 'tint'" (click)="zoneFill.set('tint')">Teintée</button>
+              <div class="seg-dark">
+                <button type="button" [attr.aria-pressed]="zoneFill() === 'hatch'" (click)="zoneFill.set('hatch')">Hachurée</button>
+                <button type="button" [attr.aria-pressed]="zoneFill() === 'tint'" (click)="zoneFill.set('tint')">Teintée</button>
+              </div>
               @if (zonePoints().length) {
                 <button class="btn btn-small btn-primary" type="button" [disabled]="zonePoints().length < 3" (click)="finishZone()">Terminer la zone</button>
-                <button class="btn btn-small" type="button" (click)="cancelZone()">Annuler</button>
+                <button class="btn btn-small btn-on-dark" type="button" (click)="cancelZone()">Abandonner la zone</button>
               } @else {
-                <span class="hint light">Touchez les angles de la zone.</span>
+                <span class="light">Touchez les angles de la zone.</span>
               }
             }
             @case ('stamp') {
-              @for (s of stamps; track s) {
-                <button class="choice" type="button" [attr.aria-pressed]="stampText() === s" (click)="stampText.set(s)">{{ s }}</button>
-              }
-              @for (s of textSizes; track s[0]) {
-                <button class="choice" type="button" [attr.aria-pressed]="textSize() === s[1]" (click)="textSize.set(s[1])">{{ s[0] }}</button>
-              }
+              <div class="seg-dark">
+                @for (s of stamps; track s) {
+                  <button type="button" [attr.aria-pressed]="stampText() === s" (click)="stampText.set(s)">{{ s }}</button>
+                }
+              </div>
+              <div class="seg-dark">
+                @for (s of textSizes; track s[0]) {
+                  <button type="button" [attr.aria-pressed]="textSize() === s[1]" (click)="textSize.set(s[1])">{{ sizeLabels[s[0]] }}</button>
+                }
+              </div>
             }
             @case ('select') {
               @if (selectedId()) {
-                <button class="btn btn-small" type="button" (click)="duplicateSelected()"><app-icon name="copy" />Dupliquer</button>
-                <button class="btn btn-small btn-danger" type="button" (click)="deleteSelected()">Supprimer la forme</button>
+                <button class="btn btn-small btn-on-dark" type="button" (click)="duplicateSelected()"><app-icon name="copy" />Dupliquer</button>
+                <button class="btn btn-small btn-on-dark" type="button" (click)="deleteSelected()"><app-icon name="trash" />Supprimer la forme</button>
               } @else {
-                <span class="hint light">Touchez une forme pour la déplacer.</span>
+                <span class="light">Touchez une forme pour la déplacer.</span>
               }
             }
             @default {
-              @for (s of strokeWidths; track s[0]) {
-                <button class="choice" type="button" [attr.aria-pressed]="strokeWidth() === s[1]" (click)="strokeWidth.set(s[1])">{{ s[0] }}</button>
-              }
+              <span>Épaisseur</span>
+              <div class="seg-dark">
+                @for (s of strokeWidths; track s[0]) {
+                  <button type="button" [attr.aria-pressed]="strokeWidth() === s[1]" (click)="strokeWidth.set(s[1])">{{ sizeLabels[s[0]] }}</button>
+                }
+              </div>
             }
           }
-          <span class="spacer"></span>
-          <button class="btn btn-small" type="button" [disabled]="!canUndo()" (click)="undo()" aria-label="Annuler"><app-icon name="undo" />Annuler</button>
-          <button class="btn btn-small" type="button" [disabled]="!canRedo()" (click)="redo()" aria-label="Rétablir"><app-icon name="redo" />Rétablir</button>
         </div>
       </footer>
     }

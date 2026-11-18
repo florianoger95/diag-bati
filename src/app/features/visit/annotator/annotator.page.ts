@@ -46,18 +46,35 @@ export type Tool = 'select' | ShapeKind | 'locate';
 /** Glissé minimal (px à l'écran) pour donner une direction à la localisation. */
 const MIN_DIRECTION_PX = 14;
 
-const TOOLS: { id: Tool; label: string; icon: IconName }[] = [
-  { id: 'select', label: 'Sélectionner / déplacer', icon: 'cursor' },
-  { id: 'arrow', label: 'Flèche', icon: 'arrow' },
-  { id: 'line', label: 'Trait droit', icon: 'line' },
-  { id: 'rect', label: 'Rectangle', icon: 'rect' },
-  { id: 'ellipse', label: 'Ellipse', icon: 'ellipse' },
-  { id: 'free', label: 'Trait libre', icon: 'freehand' },
-  { id: 'zone', label: 'Zone', icon: 'hatch' },
-  { id: 'text', label: 'Texte', icon: 'text' },
-  { id: 'badge', label: 'Pastille numérotée', icon: 'pastille' },
-  { id: 'stamp', label: 'Tampon', icon: 'stamp' },
+interface ToolDef { id: Tool; label: string; short: string; icon: IconName }
+
+/** Outils libellés, groupés par famille (le libellé court est contenu dans le nom accessible). */
+const TOOL_GROUPS: { name: string; tools: ToolDef[] }[] = [
+  { name: 'Sélection', tools: [{ id: 'select', label: 'Sélectionner / déplacer', short: 'Sélection', icon: 'cursor' }] },
+  { name: 'Formes', tools: [
+    { id: 'arrow', label: 'Flèche', short: 'Flèche', icon: 'arrow' },
+    { id: 'line', label: 'Trait droit', short: 'Trait', icon: 'line' },
+    { id: 'rect', label: 'Rectangle', short: 'Rectangle', icon: 'rect' },
+    { id: 'ellipse', label: 'Ellipse', short: 'Ellipse', icon: 'ellipse' },
+  ] },
+  { name: 'Tracés', tools: [
+    { id: 'free', label: 'Trait libre', short: 'Libre', icon: 'freehand' },
+    { id: 'zone', label: 'Zone', short: 'Zone', icon: 'hatch' },
+    { id: 'text', label: 'Texte', short: 'Texte', icon: 'text' },
+  ] },
+  { name: 'Repères', tools: [
+    { id: 'badge', label: 'Pastille numérotée', short: 'Pastille', icon: 'pastille' },
+    { id: 'stamp', label: 'Tampon', short: 'Tampon', icon: 'stamp' },
+  ] },
 ];
+
+/** Noms des couleurs de départ (annonce vocale, légende « Rouge = … »). */
+const COLOR_NAMES: Record<string, string> = {
+  '#e00000': 'Rouge', '#ffd400': 'Jaune', '#00a650': 'Vert', '#0070c0': 'Bleu',
+  '#7030a0': 'Violet', '#ffffff': 'Blanc', '#000000': 'Noir',
+};
+
+const SIZE_LABELS: Record<string, string> = { fin: 'Fin', moyen: 'Moyen', epais: 'Épais', petit: 'Petit', grand: 'Grand' };
 
 const MIN_SIZE = 0.01;
 const SAVE_DELAY = 500;
@@ -78,7 +95,13 @@ export class AnnotatorPage {
   private readonly dialogs = inject(DialogService);
   private readonly router = inject(Router);
 
-  readonly tools = TOOLS;
+  readonly toolGroups = TOOL_GROUPS;
+  readonly sizeLabels = SIZE_LABELS;
+  readonly menuOpen = signal(false);
+  /** Situer : 'place' (toucher l'endroit), 'aim' (glisser), 'done' (enregistré, on peut corriger). */
+  readonly locatePhase = signal<'place' | 'aim' | 'done'>('place');
+  /** Annotations du plan avant le placement, pour « Recommencer » et « Annuler ». */
+  private beforeLocate: Shape[] | null = null;
   readonly strokeWidths = Object.entries(STROKE_WIDTHS) as [string, number][];
   readonly textSizes = Object.entries(TEXT_SIZES) as [string, number][];
 
@@ -370,6 +393,7 @@ export class AnnotatorPage {
     this.draft.set(null);
     this.start = null;
     this.freePoints = [];
+    if (this.locatePhase() === 'aim') this.locatePhase.set('place');
     if (this.drag) {
       this.shapes.set(this.drag.original);
       this.drag = null;
@@ -403,6 +427,8 @@ export class AnnotatorPage {
         this.commit([...this.shapes(), { id: crypto.randomUUID(), kind: 'stamp', x: p[0], y: p[1], text: this.stampText(), size: this.textSize() * 0.8, color: this.color() }]);
         return;
       case 'locate':
+        if (!this.beforeLocate) this.beforeLocate = this.shapes();
+        if (this.locatePhase() === 'place') this.locatePhase.set('aim');
         this.start = p;
         this.draft.set(this.locationBadge(p, p));
         return;
@@ -456,8 +482,12 @@ export class AnnotatorPage {
       this.start = null;
       this.draft.set(null);
       if (badge) {
+        // enregistré au lever du doigt ; on reste sur le plan pour vérifier (Recommencer / Terminé)
         this.commit(locatePhoto(this.shapes(), { ...badge, id: crypto.randomUUID() }), false);
-        void this.finishLocate();
+        this.locatePhase.set('done');
+        void this.flush();
+      } else if (this.locatePhase() === 'aim') {
+        this.locatePhase.set('place');
       }
       return;
     }
@@ -554,7 +584,19 @@ export class AnnotatorPage {
     };
   }
 
-  /** Enregistre la localisation et revient à l'item de la photo. */
+  /** « Recommencer » : retire l'emplacement posé et revient à la première étape. */
+  restartLocate(): void {
+    if (this.beforeLocate && this.locatePhase() === 'done') this.commit(this.beforeLocate, false);
+    this.locatePhase.set('place');
+  }
+
+  /** « Annuler » : laisse le plan tel qu'il était et revient à la question de la photo. */
+  async cancelLocate(): Promise<void> {
+    if (this.beforeLocate && this.locatePhase() === 'done') this.commit(this.beforeLocate, false);
+    await this.finishLocate();
+  }
+
+  /** « Terminé » : la localisation est enregistrée, retour à la question de la photo. */
   async finishLocate(): Promise<void> {
     const photo = this.locating();
     await this.flush();
@@ -659,6 +701,26 @@ export class AnnotatorPage {
     if (id) this.commit(this.shapes().map((s) => (s.id === id ? { ...s, color } : s)));
   }
 
+  kindLabel(kind: Photo['kind']): string {
+    return kind === 'photo' ? 'Photo' : kind === 'plan' ? 'Plan' : 'Croquis';
+  }
+
+  colorName(color: string): string {
+    return COLOR_NAMES[color.toLowerCase()] ?? `Couleur ${color.toLowerCase()}`;
+  }
+
+  swatchLabel(color: string): string {
+    const legend = this.legendLabel()(color);
+    return legend ? `${this.colorName(color)} — ${legend}` : this.colorName(color);
+  }
+
+  /** Bouton de légende de la couleur courante : « Rouge = Désordres », ou la nommer. */
+  chipLabel(): string {
+    const c = this.color();
+    const legend = this.legendLabel()(c);
+    return legend ? `${this.colorName(c)} = ${legend}` : `${this.colorName(c)} : nommer la couleur`;
+  }
+
   setTool(tool: Tool): void {
     if (this.zonePoints().length && tool !== 'zone') this.finishZone();
     this.tool.set(tool);
@@ -671,8 +733,9 @@ export class AnnotatorPage {
   }
 
   private scheduleSave(): void {
+    // un seul enregistrement en attente à la fois : le compteur ne doit monter qu'une fois par flush
+    if (!this.pendingSave) this.store.pendingWrites.update((n) => n + 1);
     this.pendingSave = true;
-    this.store.pendingWrites.update((n) => n + 1);
     clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => void this.flush(), SAVE_DELAY);
   }
@@ -737,9 +800,11 @@ export class AnnotatorPage {
   async remove(): Promise<void> {
     const photo = this.photo();
     if (!photo) return;
-    const ok = await this.dialogs.confirm(`Supprimer ${photo.kind === 'photo' ? 'la photo' : 'le plan'} n° ${this.number()} ?`,
+    const ok = await this.dialogs.confirm(`Supprimer ${photo.kind === 'photo' ? 'la photo' : photo.kind === 'plan' ? 'le plan' : 'le croquis'} n° ${this.number()} ?`,
       'L’image et ses annotations seront supprimées.', { confirmLabel: 'Supprimer', danger: true });
     if (!ok) return;
+    clearTimeout(this.saveTimer);
+    if (this.pendingSave) this.store.pendingWrites.update((n) => Math.max(0, n - 1));
     this.pendingSave = false;
     const target = { ...photo };
     await this.store.deletePhoto(photo.id);
@@ -750,6 +815,10 @@ export class AnnotatorPage {
 
   @HostListener('document:keydown', ['$event'])
   onKey(e: KeyboardEvent): void {
+    if (e.key === 'Escape' && this.menuOpen()) {
+      this.menuOpen.set(false);
+      return;
+    }
     if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();

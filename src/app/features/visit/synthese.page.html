@@ -1,117 +1,111 @@
-<div class="page stack">
-  <h1>Synthèse de la visite</h1>
-
-  <section class="card stack" aria-labelledby="t-desordres">
-    <h2 id="t-desordres">Désordres <span class="badge">{{ defects().length }}</span></h2>
-    @if (defects().length === 0) {
-      <p class="hint">Aucun désordre relevé.</p>
-    } @else {
-      <p class="hint">{{ urgencyLegend }}</p>
-      <ul class="list">
-        @for (d of defects(); track d.instanceId + d.itemId + d.obsId) {
-          <li>
-            <a [routerLink]="link(d)" [queryParams]="query(d)" class="entry">
-              <app-urgency [urgency]="d.urgency" [solid]="true" />
-              <span><strong>{{ d.instanceLabel }}</strong> — {{ d.itemLabel }}</span>
-              @if (d.observation) { <span class="entry-obs">{{ d.observation }}</span> }
-            </a>
-          </li>
-        }
-      </ul>
-    }
-  </section>
-
-  @if (probes().length) {
-    <section class="card stack" aria-labelledby="t-sondages">
-      <h2 id="t-sondages">Sondages à réaliser <span class="badge badge-sonder">{{ probesLeft() }}</span></h2>
-      <ul class="list">
-        @for (p of probes(); track p.instanceId + p.itemId + p.obsId) {
-          <li>
-            <a [routerLink]="link(p)" [queryParams]="query(p)" class="entry">
-              @if (p.done) { <span class="badge">Levé</span> } @else { <span class="tag-sonder"><app-icon name="sonder" size="sm" />À sonder</span> }
-              <span><strong>{{ p.instanceLabel }}</strong> — {{ p.itemLabel }}</span>
-              @if (p.observation) { <span class="entry-obs">{{ p.observation }}</span> }
-            </a>
-          </li>
-        }
-      </ul>
-    </section>
+<!-- rubriques de la synthèse -->
+<nav class="qlist rubriques" aria-label="Rubriques de la synthèse">
+  <div class="qlist-head"><span class="overline">Synthèse de la visite</span></div>
+  @for (r of rubrics(); track r.id) {
+    <a class="q-row" [routerLink]="[]" [queryParams]="{ r: r.id }" [replaceUrl]="true" [attr.aria-current]="r.id === current() ? 'true' : null">
+      <span class="q-text">
+        <span class="q-title">{{ r.title }}</span>
+        <span class="q-answer" [class.is-empty]="r.empty" [class.is-warn]="r.warn">{{ r.summary }}</span>
+      </span>
+      <app-icon name="right" />
+    </a>
   }
-
-  <section class="card stack" aria-labelledby="t-securite">
-    <h2 id="t-securite">Mesures de sécurité à court terme</h2>
-    @if (safety().length === 0) {
-      <p class="hint">Aucune mesure de sécurité.</p>
-    } @else {
-      <ul class="list">
-        @for (a of safety(); track trackAction(a)) {
-          <li>
-            <a [routerLink]="link(a)" [queryParams]="query(a)" class="entry">
-              <app-urgency [urgency]="a.urgency" />
-              <span>{{ a.text }}</span>
-              <span class="hint">{{ a.instanceLabel }}</span>
-            </a>
-          </li>
-        }
-      </ul>
-    }
-  </section>
-
-  <section class="card stack" aria-labelledby="t-travaux">
-    <h2 id="t-travaux">Récapitulatif des travaux et échéances</h2>
-    @if (works().length === 0) {
-      <p class="hint">Aucune préconisation.</p>
-    }
-    @for (g of works(); track g.urgency) {
-      <h3>{{ labels[g.urgency] }}</h3>
-      <ul class="list">
-        @for (a of g.items; track trackAction(a)) {
-          <li>
-            <a [routerLink]="link(a)" [queryParams]="query(a)" class="entry">
-              <span>{{ a.text }}</span>
-              <span class="hint">{{ a.instanceLabel }}</span>
-            </a>
-          </li>
-        }
-      </ul>
-    }
-  </section>
-
-  @if (maintenance().length) {
-    <section class="card stack" aria-labelledby="t-entretien">
-      <h2 id="t-entretien">Mesures d'entretien</h2>
-      <ul class="list">
-        @for (a of maintenance(); track trackAction(a)) {
-          <li><a [routerLink]="link(a)" [queryParams]="query(a)" class="entry"><span>{{ a.text }}</span><span class="hint">{{ a.instanceLabel }}</span></a></li>
-        }
-      </ul>
-    </section>
-  }
-
-  <section class="card stack" aria-labelledby="t-manquants">
-    <h2 id="t-manquants">Réponses obligatoires manquantes
-      <span class="badge" [class.badge-warn]="missing().length">{{ missing().length }}</span></h2>
-    @if (missing().length === 0) {
-      <p class="hint">Tout est renseigné.</p>
-    } @else {
-      <ul class="list">
-        @for (m of missing(); track (m.instanceId ?? '') + m.itemId) {
-          <li><a [routerLink]="link(m)" [queryParams]="query(m)" class="entry"><strong>{{ m.instanceLabel }}</strong> — {{ m.itemLabel }}</a></li>
-        }
-      </ul>
-    }
-  </section>
-
-  <div class="row closing">
-    <span class="spacer"></span>
+  <div class="qlist-foot closing">
     @if (store.visit()?.status === 'draft') {
-      <button class="btn btn-primary" type="button" (click)="close()">Clôturer la visite</button>
+      <button class="btn btn-primary btn-block" type="button" (click)="close()"><app-icon name="check" />Clôturer la visite</button>
+      <p class="hint">La clôture fige la visite et permet ensuite de créer une mise à jour.</p>
     } @else if (store.newerVisitId()) {
-      <span class="hint">Visite antérieure, en lecture seule.</span>
+      <p class="hint">Visite antérieure, en lecture seule.</p>
     } @else {
-      <span class="hint">Visite clôturée.</span>
-      <button class="btn" type="button" (click)="reopen()">Rouvrir la visite</button>
-      <a class="btn btn-primary" [routerLink]="['/dossiers', store.visit()!.projectId]">Mise à jour ou sauvegarde<app-icon name="right" /></a>
+      <p class="hint">Visite clôturée.</p>
+      <button class="btn btn-block" type="button" (click)="reopen()">Rouvrir la visite</button>
+      <a class="btn btn-primary btn-block" [routerLink]="['/dossiers', store.visit()!.projectId]">Mise à jour ou sauvegarde<app-icon name="right" /></a>
     }
   </div>
-</div>
+</nav>
+
+<!-- détail de la rubrique -->
+<section class="detail" aria-labelledby="syn-title">
+  <div class="detail-body">
+    @switch (current()) {
+      @case ('desordres') {
+        <div class="detail-head"><span class="overline">Désordres · {{ defects().length }}</span></div>
+        <h1 class="detail-title" id="syn-title">Désordres par urgence</h1>
+        <p class="hint legend">{{ urgencyLegend }}</p>
+        @for (g of defectGroups(); track g.urgency) {
+          <div class="grp">
+            <app-urgency [urgency]="g.urgency" [solid]="true" />
+            <span class="hint">{{ g.items.length || 'Aucun' }}</span>
+          </div>
+          @for (d of g.items; track d.instanceId + d.itemId + d.obsId) {
+            <a class="syn-item" [routerLink]="link(d)" [queryParams]="query(d)">
+              <span class="t"><b>{{ d.instanceLabel }} — {{ d.itemLabel }}</b>@if (d.observation) {<span>{{ d.observation }}</span>}</span>
+              <span class="voir">Voir<app-icon name="right" size="sm" /></span>
+            </a>
+          }
+        }
+      }
+      @case ('sondages') {
+        <div class="detail-head"><span class="overline">Sondages · {{ probesLeft() }} à réaliser</span></div>
+        <h1 class="detail-title" id="syn-title">Sondages à réaliser</h1>
+        @for (p of probes(); track p.instanceId + p.itemId + p.obsId) {
+          <a class="syn-item" [routerLink]="link(p)" [queryParams]="query(p)">
+            @if (p.done) { <span class="badge">Levé</span> } @else { <span class="tag-sonder"><app-icon name="sonder" size="sm" />À sonder</span> }
+            <span class="t"><b>{{ p.instanceLabel }} — {{ p.itemLabel }}</b>@if (p.observation) {<span>{{ p.observation }}</span>}</span>
+            <span class="voir">Voir<app-icon name="right" size="sm" /></span>
+          </a>
+        }
+      }
+      @case ('securite') {
+        <div class="detail-head"><span class="overline">Sécurité · {{ safety().length }}</span></div>
+        <h1 class="detail-title" id="syn-title">Mesures de sécurité à court terme</h1>
+        @for (a of safety(); track trackAction(a)) {
+          <a class="syn-item" [routerLink]="link(a)" [queryParams]="query(a)">
+            <app-urgency [urgency]="a.urgency" />
+            <span class="t"><b>{{ a.text }}</b><span>{{ a.instanceLabel }}</span></span>
+            <span class="voir">Voir<app-icon name="right" size="sm" /></span>
+          </a>
+        } @empty {
+          <p class="hint">Aucune mesure de sécurité.</p>
+        }
+      }
+      @case ('travaux') {
+        <div class="detail-head"><span class="overline">Préconisations · {{ worksCount() }}</span></div>
+        <h1 class="detail-title" id="syn-title">Travaux et échéances</h1>
+        @for (g of works(); track g.urgency) {
+          <div class="grp"><app-urgency [urgency]="g.urgency" [solid]="true" /><span class="hint">{{ g.items.length }}</span></div>
+          @for (a of g.items; track trackAction(a)) {
+            <a class="syn-item" [routerLink]="link(a)" [queryParams]="query(a)">
+              <span class="t"><b>{{ a.text }}</b><span>{{ a.instanceLabel }}</span></span>
+              <span class="voir">Voir<app-icon name="right" size="sm" /></span>
+            </a>
+          }
+        } @empty {
+          <p class="hint">Aucune préconisation.</p>
+        }
+      }
+      @case ('entretien') {
+        <div class="detail-head"><span class="overline">Entretien · {{ maintenance().length }}</span></div>
+        <h1 class="detail-title" id="syn-title">Mesures d'entretien</h1>
+        @for (a of maintenance(); track trackAction(a)) {
+          <a class="syn-item" [routerLink]="link(a)" [queryParams]="query(a)">
+            <span class="t"><b>{{ a.text }}</b><span>{{ a.instanceLabel }}</span></span>
+            <span class="voir">Voir<app-icon name="right" size="sm" /></span>
+          </a>
+        }
+      }
+      @case ('manquants') {
+        <div class="detail-head"><span class="overline">Réponses obligatoires · {{ missing().length }} manquante{{ missing().length > 1 ? 's' : '' }}</span></div>
+        <h1 class="detail-title" id="syn-title">Réponses obligatoires manquantes</h1>
+        @for (m of missing(); track (m.instanceId ?? '') + m.itemId) {
+          <a class="syn-item" [routerLink]="link(m)" [queryParams]="query(m)">
+            <span class="t"><b>{{ m.instanceLabel }} — {{ m.itemLabel }}</b></span>
+            <span class="voir">Voir<app-icon name="right" size="sm" /></span>
+          </a>
+        } @empty {
+          <p class="hint">Tout est renseigné.</p>
+        }
+      }
+    }
+  </div>
+</section>
